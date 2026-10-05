@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIOBUZZ HIVE Match Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: pit-notebook tool. Settings strip, collect-time grid, scenario comparison, then one timeline per scenario. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#17212b; --muted:#5a6672; --faint:#8b96a1; --rule:#d9dfe5; --grid:#e6eaee;
+  --accent:#9a6400; --accent-soft:#fff3d6;
+  --team-red:#d03b3b; --team-blue:#2a78d6; --info:#2a78d6; --collect:#2a78d6; --launch:#eda100; --swing:#1baf7a; --wait:#9aa5af; --park:#c7ced5; --alt:#6250d6; --gap:#e34948; --both:#e87ba4; --miss:#b3261e;
+  --auto-band:rgba(42,120,214,.07); --trans-band:rgba(23,33,43,.06);
+  --good:#0b7a3b; --good-bg:#e3f4e9; --off:#6b7680; --off-bg:#eceff2;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1418; --surface:#161d23; --ink:#e6ebef; --muted:#9aa6b1; --faint:#6f7b86; --rule:#2a343d; --grid:#222b33;
+  --accent:#f0b429; --accent-soft:#2e2510;
+  --team-red:#e66767; --team-blue:#3987e5; --info:#3987e5; --collect:#3987e5; --launch:#c98500; --swing:#199e70; --wait:#6b7782; --park:#3a454f; --alt:#9085e9; --gap:#e66767; --both:#d55181; --miss:#ff8a80;
+  --auto-band:rgba(57,135,229,.10); --trans-band:rgba(255,255,255,.05);
+  --good:#5fd08f; --good-bg:#15301f; --off:#8a96a1; --off-bg:#222a31; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1418; --surface:#161d23; --ink:#e6ebef; --muted:#9aa6b1; --faint:#6f7b86; --rule:#2a343d; --grid:#222b33;
+  --accent:#f0b429; --accent-soft:#2e2510;
+  --team-red:#e66767; --team-blue:#3987e5; --info:#3987e5; --collect:#3987e5; --launch:#c98500; --swing:#199e70; --wait:#6b7782; --park:#3a454f; --alt:#9085e9; --gap:#e66767; --both:#d55181; --miss:#ff8a80;
+  --auto-band:rgba(57,135,229,.10); --trans-band:rgba(255,255,255,.05);
+  --good:#5fd08f; --good-bg:#15301f; --off:#8a96a1; --off-bg:#222a31; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);margin:0}
+.wrap{max-width:none;margin:0;padding-inline:clamp(16px,2.5vw,32px);padding-block:28px 56px;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance;letter-spacing:.005em}
+h1{font-size:30px;line-height:1.1}
+h2{font-size:21px}
+h3{font-size:18px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.top-text{min-width:0;flex:1 1 420px}.top #reset{flex:none}
+.robots{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.rcard{border:1px solid var(--rule);border-radius:8px;padding:14px 14px 16px;background:var(--bg);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px 14px;align-items:end;min-width:0}
+.rcard input:disabled,.rcard select:disabled{opacity:.45}
+.rcard select{font:500 13px var(--f-body);padding:6px 4px}
+.maxrow{grid-column:1/-1}.fillcap{grid-column:auto/span 1}.rcard .check{align-self:center}
+.maxpair{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.maxpair input[type=number]{width:64px;flex:none}
+.maxpair .sub{font:600 12px var(--f-display);letter-spacing:.05em;color:var(--muted)}.maxpair .or{font:italic 500 13px var(--f-body);color:var(--faint);padding:0 6px}
+.rname{grid-column:1/-1;font-size:16px;display:flex;align-items:center}
+.info{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;margin-left:8px;border-radius:50%;border:0;background:var(--info);color:#fff;font:italic 700 12px/1 Georgia,"Times New Roman",serif;text-transform:none;letter-spacing:0;vertical-align:3px;cursor:pointer}
+.info:hover{filter:brightness(1.12)}.info[aria-expanded="true"]{box-shadow:0 0 0 3px color-mix(in srgb,var(--info) 30%,transparent)}
+.pop{position:fixed;z-index:20;max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;max-width:min(380px,calc(100vw - 24px));background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-left:3px solid var(--info);border-radius:0 6px 6px 0;padding:10px 12px;font-size:13.5px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.16)}
+.pop p{margin:0}.pop p+p{margin-top:6px}
+[hidden]{display:none!important}
+#tmColor{max-width:240px}
+.achip{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:0}.achip.red{background:var(--team-red)}.achip.blue{background:var(--team-blue)}
+.rcard input[type=text]{font:500 14px var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+.acts{white-space:nowrap}.rowbtn{padding:3px 9px;font:600 12px var(--f-display);margin-left:4px}.rowbtn.del:hover{border-color:var(--miss);color:var(--miss)}
+.evtable tr.editing td{background:var(--accent-soft)!important;color:var(--ink)!important}
+.filebtn{display:inline-flex;align-items:center;font:600 13px var(--f-display);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 12px;cursor:pointer}
+.filebtn:hover{border-color:var(--faint)}#mfLoad:focus-visible+.filebtn,.filebtn:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+#mfMsg:empty,.filemsg:empty{display:none}#mfMsg,.filemsg{margin:0}
+#pfLoad:focus-visible+.filebtn{outline:2px solid var(--accent);outline-offset:1px}
+.vidside input[type=text]{font:500 14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+.plan-tools{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:-14px}
+#optDlg{border:1px solid var(--rule);border-radius:10px;background:var(--surface);color:var(--ink);padding:0;width:min(520px,calc(100vw - 32px));box-shadow:0 18px 50px rgba(0,0,0,.25)}
+#optDlg::backdrop{background:rgba(10,15,20,.4)}
+.dlg{display:flex;flex-direction:column;gap:14px;padding:22px 22px 18px}
+.opt{display:flex;gap:12px;align-items:flex-start;cursor:pointer;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--bg)}
+.opt input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex:none}.opt b{font-weight:600;display:block}.opt .hint{display:block;margin-top:2px}
+.dlg-actions{justify-content:flex-end}
+.opt-eq{cursor:default}.opt.opt-eq .eqrow .eq,.opt.opt-eq .eqrow .eqlab{display:inline-flex!important;width:auto!important}.opt.opt-eq .eqrow{display:flex!important;flex-direction:row!important}.opt.opt-eq .eqlab .info{margin-left:6px;vertical-align:0}.opt.opt-eq .eq input{width:84px!important;height:auto!important;accent-color:auto;flex:none!important;margin:0!important}.eqrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}.eqlab{font-weight:600;min-width:104px}.eq{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;font:500 14px var(--f-mono)}.eq input{width:84px;font:500 14px var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:4px 6px}
+.opt-sel{align-items:center;justify-content:space-between;cursor:default}.opt-sel select{width:auto;flex:none;font:500 14px var(--f-body)}
+.info-h1{width:22px;height:22px;font-size:14px;margin-left:10px;vertical-align:5px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin-bottom:-6px}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:10px 16px 9px;font:600 16px var(--f-display);text-transform:none;letter-spacing:.02em;color:var(--muted)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}.tabs button:hover{color:var(--ink)}
+.tabpanel{display:flex;flex-direction:column;gap:28px}
+.scroll{position:relative}
+.sr-only{position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.vidgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.vidgrid{grid-template-columns:minmax(0,1fr)}}
+.vidbox video{width:100%;max-height:82vh;background:#000;border-radius:8px;display:block}
+.vid-empty{aspect-ratio:16/9;max-width:100%;border:1px dashed var(--rule);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:16px;background:var(--bg)}
+.tl-h{margin:14px 0 4px;font:600 15px var(--f-body);color:var(--ink);display:flex;align-items:center;gap:6px}
+.vidside{display:flex;flex-direction:column;gap:14px}.vidside button,.evform .field button{align-self:flex-start;margin-top:4px}
+input[type=file]{font:14px var(--f-body);color:var(--ink);max-width:100%}
+.clock{font:500 30px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.evform{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px 16px;align-items:start}
+.evform select{font:500 14px var(--f-body)}
+.evsubmit{align-self:end}.err{color:var(--miss);font-size:13px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btnsep{width:1px;align-self:stretch;background:var(--rule);margin:0 6px}
+.count{color:var(--muted);font-weight:500}
+.banner{margin:0;padding:9px 12px;border-radius:6px;background:var(--accent-soft);color:var(--ink);font-size:13.5px}
+.evtable{min-width:600px}.evtable td.ev,.evtable th{text-align:left;white-space:normal}
+#anRounds td,#anRounds th{white-space:nowrap;text-align:left}#anRounds td.ev{white-space:normal}#anRounds td .hint{font-family:var(--f-body)}.evtable tr.opp td{background:var(--bg);color:var(--muted)}
+#evTable th,#evTable td{text-align:left}#evTable td.acts{text-align:right}
+.flags{border-collapse:collapse;min-width:520px}.flags th{font:600 12px var(--f-display);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 12px;text-align:center;border-bottom:1px solid var(--rule)}
+.flags th:first-child,.flags td:first-child{text-align:left}.flags td{padding:7px 12px;text-align:center;border-bottom:1px solid var(--grid)}
+.flags input{width:17px;height:17px;accent-color:var(--accent)}
+textarea{width:100%;font:12.5px var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:8px}
+.warns{margin:0;padding-left:18px;color:var(--miss);font-size:13.5px;display:flex;flex-direction:column;gap:3px}
+.cmp tr.opp td{color:var(--muted)}
+.lede{color:var(--muted);max-width:68ch;margin:6px 0 0}
+.eyebrow{font:600 12px/1 var(--f-display);text-transform:uppercase;letter-spacing:.09em;color:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:18px 18px 20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hint{color:var(--muted);font-size:13.5px;margin:0;max-width:75ch}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px 18px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label,.lbl{font:600 12.5px/1.2 var(--f-display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pair{display:flex;gap:8px}
+.pair .unit{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.pair .tag{font:600 12px var(--f-mono);color:var(--faint);width:14px}
+input[type=number],select{font:500 14px var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:6px 8px;width:100%;min-width:0;font-variant-numeric:tabular-nums}
+input[type=number]:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+button{font:600 13px var(--f-display);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--faint)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.grid{border-collapse:separate;border-spacing:4px;font-variant-numeric:tabular-nums}
+table.grid th{font:600 12px var(--f-display);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;padding:0 2px;white-space:nowrap}
+table.grid th.row{text-align:left;padding-right:8px}
+table.grid td input{width:58px;text-align:center;padding:5px 2px}
+table.grid td input.auto-round{border-color:var(--collect)}
+.fill{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fill input{width:72px}
+.cmp{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:820px}
+.cmp th{font:600 12px var(--f-display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--ink)}
+.cmp th:first-child,.cmp td:first-child{text-align:left}
+.cmp td{padding:9px 10px;border-bottom:1px solid var(--rule);text-align:right}
+.cmp td.big{font:600 17px var(--f-mono)}
+.cmp tr.best td.big{color:var(--accent)}
+.num{font-family:var(--f-mono)}
+.letter{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:9px;border-radius:4px;background:var(--accent-soft);color:var(--accent);font:600 13px/1 var(--f-display);vertical-align:1px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font:600 11.5px/1 var(--f-display);letter-spacing:.05em;text-transform:uppercase;padding:4px 7px;border-radius:4px;white-space:nowrap}
+.chip.on{background:var(--good-bg);color:var(--good)}
+.chip.off{background:var(--off-bg);color:var(--off);text-decoration:line-through}
+.scen{display:flex;flex-direction:column;gap:12px}
+.scen-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.scen-head .desc{color:var(--muted);font-size:14px;margin:3px 0 0;max-width:62ch}
+.kpis{display:flex;gap:22px;flex-wrap:wrap}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi b{font:500 22px/1 var(--f-mono)}
+.kpi span{font:600 11.5px var(--f-display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:6px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;min-width:760px;height:auto}
+.chart text{font-family:var(--f-body)}
+.tip{position:fixed;pointer-events:none;max-height:none;overflow:visible;box-shadow:0 4px 14px rgba(0,0,0,.18);background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.4;padding:8px 10px;border-radius:6px;width:290px;z-index:3;font-variant-numeric:tabular-nums}
+.hivefig{margin-top:8px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);padding-top:6px}.chart .hivefig svg{display:block;width:266px;min-width:0;max-width:100%;height:auto}
+.hleg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;opacity:.85}.hl i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0}.hl i.sq{border-radius:2px;border:2px solid;width:9px;height:9px;background:transparent;vertical-align:-1px}
+.tip hr{border:0;border-top:1px solid color-mix(in srgb,var(--bg) 30%,transparent);margin:6px 0}
+.inv{display:grid;grid-template-columns:auto 1fr;gap:1px 10px}.inv b{grid-column:1/-1;margin-bottom:2px}.inv span:nth-child(even){opacity:.75}
+.invwrap{max-height:380px;overflow:auto;border:1px solid var(--rule);border-radius:6px}
+.invlog{margin-top:0;min-width:1080px}.invlog thead th{position:sticky;top:0;background:var(--surface);vertical-align:bottom;white-space:normal;line-height:1.2}
+.invlog td.ev{text-align:left;font-family:var(--f-body);font-size:13px;white-space:nowrap}.invlog tr.opp td{background:var(--bg);color:var(--muted)}
+details{border-top:1px solid var(--rule);padding-top:10px}
+summary{cursor:pointer;font:600 13px var(--f-display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.log{border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;margin-top:8px;min-width:520px}
+.log th{font:600 11.5px var(--f-display);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:right;padding:5px 10px;border-bottom:1px solid var(--rule)}
+.log td{padding:5px 10px;text-align:right;border-bottom:1px solid var(--grid);font-family:var(--f-mono);font-size:13px}
+.log th:first-child,.log td:first-child{text-align:left}
+.notes{color:var(--muted);font-size:13.5px;max-width:80ch;margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="top-text">
+    <div class="eyebrow">Lightning Robotics</div>
+    <h1>FTC BIOBUZZ · HIVE planning and match analysis<button type="button" class="info info-h1" aria-label="About this planner" aria-expanded="false" aria-controls="top-i1">i</button><span class="info-text" id="top-i1" hidden><p>Plan your alliance's HIVE cycles, then check the plan against real matches. Planning simulates a match from your robots' times. Match Analysis works backwards from a match you log, using the same rules. Your HIVE's two cells are Hive 1, the target at the start, and Hive 2; they swap with every tip.</p><p aria-hidden="true">&nbsp;</p><p>Created by Michael Andrews (<a href="mailto:mj@mikeandrews.me">mj@mikeandrews.me</a>), FTC Team 10262 and Claude Opus 5.5</p></span></h1>
+    
+    </div>
+    <button id="reset" type="button">Restore example values</button>
+  </header>
+
+  <section class="panel" aria-labelledby="phys-h">
+    <div class="panel-head"><h2 id="phys-h">Field Settings</h2></div>
+    <div class="settings">
+      <div class="field"><span class="lbl">Ball weight (lb)</span>
+        <div class="pair"><div class="unit"><span class="tag">P</span><input id="wP" type="number" min="0.01" max="0.2" step="0.001" aria-label="POLLEN weight"></div><div class="unit"><span class="tag">N</span><input id="wN" type="number" min="0.01" max="0.2" step="0.001" aria-label="NECTAR weight"></div></div></div>
+      <div class="field"><label for="flowerCap">FLOWER scoring capacity (balls)</label><input id="flowerCap" type="number" min="1" max="12" step="1"><span class="hint">Most balls a FLOWER can hold for scoring (6)</span></div>
+      <div class="field"><label for="threshold">Tip threshold (lb)</label><input id="threshold" type="number" min="0.3" max="0.8" step="0.001"></div>
+      <div class="field"><label for="model">Swing-time model</label>
+        <select id="model"><option value="phys">Physics curve: 1.244 / √(W − 0.352)</option><option value="lin">Straight line: 10.087 − 13.338 × W</option></select></div>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Planner sections"><button type="button" role="tab" id="t-plan" aria-selected="true" aria-controls="tab-plan">Planning</button><button type="button" role="tab" id="t-an" aria-selected="false" aria-controls="tab-an" tabindex="-1">Match Analysis</button></nav>
+
+<div id="tab-plan" class="tabpanel" role="tabpanel" aria-labelledby="t-plan">
+  <dialog id="optDlg" aria-labelledby="optH"><form method="dialog" class="dlg">
+    <h2 id="optH">Analysis options</h2>
+    <label class="opt" for="optErrors"><input type="checkbox" id="optErrors"><span><b>Show Errors and recovery</b><span class="hint">When hidden, robots never miss or come up short, and early return is off.</span></span></label>
+    <label class="opt" for="optOpp"><input type="checkbox" id="optOpp"><span><b>Show the opponent</b><span class="hint">When hidden, the Opponent alliance section, the Opp HIVE lane and the opponent's ball counts are hidden from the Planning timelines.</span></span></label>
+    <label class="opt" for="optSimple"><input type="checkbox" id="optSimple"><span><b>Use one collect time per robot</b><span class="hint">Replaces the round-by-round grid with a single collect time for Robot A and one for Robot B.</span></span></label>
+    <label class="opt" for="optAutoNectar"><input type="checkbox" id="optAutoNectar"><span><b>Add NECTAR during AUTO</b><span class="hint">When checked, your human player adds a NECTAR to the LOADING ZONE as soon as the HIVE tips in AUTO. When unchecked, NECTAR earned by AUTO tips is held until TELEOP starts.</span></span></label>
+    <div class="opt opt-sel"><span><b><label for="prefSource">Where robots look for POLLEN first</label></b><span class="hint">Applies to robots that can collect from FLOWERS; GARDENS are open to every robot that takes in POLLEN. Loose POLLEN on the floor always comes before the other alliance's FLOWERS.</span></span><select id="prefSource"><option value="garden">Prefer GARDEN</option><option value="flowers">Prefer FLOWERS</option></select></div>
+    <label class="opt" for="optOppFlowers"><input type="checkbox" id="optOppFlowers"><span><b>Collect from the opponent's FLOWERS</b><span class="hint">Lets FLOWER-capable robots take POLLEN from the other alliance's FLOWERS in TELEOP once the floor is empty. Never in AUTO.</span></span></label>
+    <div class="opt opt-eq"><span><b>Swing-time equations</b><span class="hint">t is the top-to-bottom swing time (s) and W the load in the cell (lb). Pick which one to use under Swing-time model in Field Settings. Restore example values resets these to the fitted values.</span>
+      <span class="eqrow"><span class="eqlab">Physics curve<button type="button" class="info" aria-label="How the physics curve was determined" aria-expanded="false" aria-controls="eq-i1">i</button><span class="info-text" id="eq-i1" hidden><p><b>Physics curve: t = k / √(W − W0)</b></p><p>Treats the HIVE as a rigid see-saw turning under a constant net torque. The load in the cell pushes with a torque proportional to its weight, and pivot friction resists with a roughly constant torque, equal to a load W0. That gives a constant angular acceleration, and from rest the swing angle grows with t², so the time to sweep the full angle is k / √(W − W0). k lumps together the swing angle, the arm length and the moment of inertia.</p><p>Fitted to three timed swings from your see-saw tests: 0.438 lb in 3.773 s, 0.440 lb in 4.700 s and 0.546 lb in 2.796 s (top to bottom). Loads of 0.364–0.385 lb did not move it, which set the 0.438 lb tip threshold.</p><p>k and W0 were chosen by non-linear least squares (minimizing the squared timing errors): k = 1.244 and W0 = 0.352 lb, R² ≈ 0.74. W0 comes out below the 0.438 lb threshold because it takes more force to start the swing (static friction) than to keep it going. This curve is the safer one for loads above the tested range.</p><p>Most of the remaining error comes from the two near-threshold runs, which differ by 0.93 s for a 0.002 lb change. Timing more runs, especially at 0.60–0.65 lb where the two equations disagree most, will improve both. Change the numbers here if you refit them.</p></span></span><span class="eq">t = <input id="phK" type="number" step="0.001" min="0.01" aria-label="Physics curve constant k"> / √(W − <input id="phW0" type="number" step="0.001" min="0" aria-label="Physics curve offset W0 (lb)">)</span></span>
+      <span class="eqrow"><span class="eqlab">Straight line<button type="button" class="info" aria-label="How the straight line was determined" aria-expanded="false" aria-controls="eq-i2">i</button><span class="info-text" id="eq-i2" hidden><p><b>Straight line: t = a − b × W</b></p><p>A purely empirical fit with no physical model behind it.</p><p>Fitted to three timed swings from your see-saw tests: 0.438 lb in 3.773 s, 0.440 lb in 4.700 s and 0.546 lb in 2.796 s (top to bottom). Loads of 0.364–0.385 lb did not move it, which set the 0.438 lb tip threshold.</p><p>a and b were chosen by ordinary least squares: a = 10.087 s and b = 13.338 s per lb, R² ≈ 0.75, so each extra 0.01 lb takes about 0.13 s off the swing. It would reach zero seconds near 0.76 lb, so don't rely on it far above 0.546 lb; the planner never lets it go below 0.5 s.</p><p>Most of the remaining error comes from the two near-threshold runs, which differ by 0.93 s for a 0.002 lb change. Timing more runs, especially at 0.60–0.65 lb where the two equations disagree most, will improve both. Change the numbers here if you refit them.</p></span></span><span class="eq">t = <input id="lnA" type="number" step="0.001" min="0" aria-label="Straight line intercept (s)"> − <input id="lnB" type="number" step="0.001" min="0" aria-label="Straight line slope (s per lb)"> × W</span></span></span></div>
+    <div class="btnrow dlg-actions"><button type="submit" class="primary" value="done">Done</button></div>
+  </form></dialog>
+  <section class="panel" aria-labelledby="pf-h">
+    <div class="panel-head"><h2 id="pf-h">Plan setup<button type="button" class="info" aria-label="About Plan setup" aria-expanded="false" aria-controls="pl-i1">i</button><span class="info-text" id="pl-i1" hidden><p>Analysis options choose which parts of the plan to include: errors and recovery, the opponent, and whether each robot uses one collect time or a time per round.</p><p>A planning file holds every Planning input: robot settings, errors and recovery, the opponent, and the collect time for each round. It also holds the Field Settings, since the plan depends on them.</p><p>Save one per robot design or event to compare plans, or share it with your team. Loading a file replaces all current Planning inputs and Field Settings.</p></span></h2></div>
+    <div class="btnrow"><input id="pfLoad" type="file" accept=".json,application/json" class="sr-only"><label class="filebtn" for="pfLoad">Load planning file (.json)</label><button id="pfSave" type="button" class="primary">Save planning file (.json)</button><span class="btnsep" aria-hidden="true"></span><button id="optBtn" type="button" aria-haspopup="dialog">Analysis options</button><span class="hint" id="optState"></span></div>
+    <p class="hint filemsg" id="pfMsg" role="status"></p>
+  </section>
+
+
+  <section class="panel" aria-labelledby="set-h">
+    <div class="panel-head"><h2 id="set-h">Robot settings<button type="button" class="info" aria-label="About Robot settings" aria-expanded="false" aria-controls="info1">i</button><span class="info-text" id="info1" hidden><p>Each card describes one robot. The planner simulates both robots with these settings for every strategy.</p><p><b>Times.</b> Launch time is the time per ball, or per volley when the robot launches all at once. AUTO: drive to launch spot is how long the robot takes to reach its launch spot with its 4 preloaded POLLEN. Time to drive to PARK is how early the robot stops to park before the end of AUTO or the end of the match.</p><p><b>Collects and Launches.</b> Choose POLLEN only, NECTAR only or both. A robot only collects balls it can launch. On demand: the robot launches whichever ball it holds that finishes the tip with the least extra weight, otherwise its heaviest. FIFO: balls go in the order collected, NECTAR first.</p><p><b>Launch style.</b> One at a time launches ball by ball. All at once launches everything the robot holds in one volley taking one launch time, so any weight above the threshold is dumped with the cell.</p><p><b>Holds.</b> The most of each type the robot can carry, never more than 4 balls in total (G407). A POLLEN limit below 4 drops the extra preloaded POLLEN at the start, and a robot that can't use POLLEN drops all 4.</p><p><b>Fill to capacity when idle.</b> While the HIVE is swinging, a robot that still has empty slots goes for more balls instead of waiting. A top-up trip takes the driving part plus a share of the search time for each empty slot. At the end of AUTO, a robot set to park uses any spare time to collect POLLEN from your GARDEN or your FLOWERS, then parks and keeps them for TELEOP.</p><p><b>Park after AUTO / Park at end.</b> 5 points each per robot when it reaches the parking area in time.</p><p><b>FLOWERS and GARDENS.</b> Every robot that takes in POLLEN can collect from a GARDEN at its normal collect time. Can collect from FLOWERS lets it also take POLLEN out of the bottom of a FLOWER, using FLOWER collection time for 4 balls (a share of it for fewer). A NECTAR in the bottom spot blocks the FLOWER. Only one robot can use a GARDEN or FLOWER at a time. Analysis options set which source robots try first and whether they may use the opponent's FLOWERS (TELEOP only).</p><p><b>Last 60 s.</b> Keep tipping the HIVE, fill your FLOWERS, or drop balls in your GARDEN. A robot filling FLOWERS puts NECTAR on top so you own them, and goes back to the HIVE once they are full. Dropping in the GARDEN scores only 1 point a ball.</p></span></h2></div>
+    <div class="robots">
+      <div class="rcard" role="group" aria-labelledby="rc-launchA"><h3 class="rname" id="rc-launchA">Robot A</h3>
+        <div class="field"><label for="launchA">Launch time (s per ball or volley)</label><input id="launchA" type="number" min="0.1" max="10" step="0.1"></div>
+        <div class="field"><label for="driveA">AUTO: drive to launch spot (s)</label><input id="driveA" type="number" min="0" max="29" step="0.5"></div>
+        <div class="field"><label for="parkA">Time to drive to PARK (s)</label><input id="parkA" type="number" min="0" max="30" step="0.5"></div>
+        <div class="field"><label for="capCA">Collects</label><select id="capCA"><option value="both">Both</option><option value="pollen">POLLEN only</option><option value="nectar">NECTAR only</option></select></div>
+        <div class="field"><label for="capLA">Launches</label><select id="capLA"><option value="demand">Both, on demand</option><option value="fifo">Both, FIFO</option><option value="pollen">POLLEN only</option><option value="nectar">NECTAR only</option></select></div>
+        <div class="field"><label for="styleA">Launch style</label><select id="styleA"><option value="one">One at a time</option><option value="all">All at once</option></select></div>
+        <div class="field maxrow"><span class="lbl">Holds (4 balls total)</span>
+          <div class="maxpair"><span class="or" style="padding-left:0">up to</span><input id="maxPA" type="number" min="0" max="4" step="1"><label class="sub" for="maxPA">POLLEN</label><span class="or">or up to</span><input id="maxNA" type="number" min="0" max="4" step="1"><label class="sub" for="maxNA">NECTAR</label></div></div>
+        <label class="check fillcap" for="topA"><input id="topA" type="checkbox"> Fill to capacity when idle</label>
+        <label class="check fillcap" for="autoParkA"><input id="autoParkA" type="checkbox"> Park after AUTO</label>
+        <label class="check fillcap" for="parkEndA"><input id="parkEndA" type="checkbox"> Park at end</label>
+        <label class="check fillcap" for="flowerA"><input id="flowerA" type="checkbox"> Can collect from FLOWERS</label>
+        <div class="field"><label for="flowerTimeA">FLOWER collection time (s)</label><input id="flowerTimeA" type="number" min="1" max="60" step="0.5"></div>
+        <div class="field"><label for="endPlanA">Last 60 s</label><select id="endPlanA"><option value="hive">Keep tipping the HIVE</option><option value="flower">Fill your FLOWERS</option><option value="garden">Drop in your GARDEN</option></select></div>
+      </div>
+      <div class="rcard" role="group" aria-labelledby="rc-launchB"><h3 class="rname" id="rc-launchB">Robot B</h3>
+        <div class="field"><label for="launchB">Launch time (s per ball or volley)</label><input id="launchB" type="number" min="0.1" max="10" step="0.1"></div>
+        <div class="field"><label for="driveB">AUTO: drive to launch spot (s)</label><input id="driveB" type="number" min="0" max="29" step="0.5"></div>
+        <div class="field"><label for="parkB">Time to drive to PARK (s)</label><input id="parkB" type="number" min="0" max="30" step="0.5"></div>
+        <div class="field"><label for="capCB">Collects</label><select id="capCB"><option value="both">Both</option><option value="pollen">POLLEN only</option><option value="nectar">NECTAR only</option></select></div>
+        <div class="field"><label for="capLB">Launches</label><select id="capLB"><option value="demand">Both, on demand</option><option value="fifo">Both, FIFO</option><option value="pollen">POLLEN only</option><option value="nectar">NECTAR only</option></select></div>
+        <div class="field"><label for="styleB">Launch style</label><select id="styleB"><option value="one">One at a time</option><option value="all">All at once</option></select></div>
+        <div class="field maxrow"><span class="lbl">Holds (4 balls total)</span>
+          <div class="maxpair"><span class="or" style="padding-left:0">up to</span><input id="maxPB" type="number" min="0" max="4" step="1"><label class="sub" for="maxPB">POLLEN</label><span class="or">or up to</span><input id="maxNB" type="number" min="0" max="4" step="1"><label class="sub" for="maxNB">NECTAR</label></div></div>
+        <label class="check fillcap" for="topB"><input id="topB" type="checkbox"> Fill to capacity when idle</label>
+        <label class="check fillcap" for="autoParkB"><input id="autoParkB" type="checkbox"> Park after AUTO</label>
+        <label class="check fillcap" for="parkEndB"><input id="parkEndB" type="checkbox"> Park at end</label>
+        <label class="check fillcap" for="flowerB"><input id="flowerB" type="checkbox"> Can collect from FLOWERS</label>
+        <div class="field"><label for="flowerTimeB">FLOWER collection time (s)</label><input id="flowerTimeB" type="number" min="1" max="60" step="0.5"></div>
+        <div class="field"><label for="endPlanB">Last 60 s</label><select id="endPlanB"><option value="hive">Keep tipping the HIVE</option><option value="flower">Fill your FLOWERS</option><option value="garden">Drop in your GARDEN</option></select></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="err-h">
+    <div class="panel-head"><h2 id="err-h">Errors and recovery<button type="button" class="info" aria-label="About Errors and recovery" aria-expanded="false" aria-controls="info2">i</button><span class="info-text" id="info2" hidden><p>How often each robot comes up short, and how the robots react when the cell is left short of tipping. Errors are spread evenly across the match, so the same settings always give the same result.</p><p>Collect shortfall: 25% means the robot finds 3 of 4 balls per round. Launch miss rate: 10% means 1 in 10 launches misses the cell. Driving part of each collect: the out-and-back time; the rest of the round is spent finding balls.</p></span></h2></div>
+    <div class="settings">
+      <div class="field"><label for="early">Early return when the cell is short</label>
+        <select id="early"><option value="off">Off: always finish the round</option><option value="endgame">Endgame only</option><option value="always">Always</option></select>
+        <span class="hint">A collecting robot heads back as soon as it holds enough balls to finish the tip</span></div>
+      <div class="field"><label for="earlyWin">Endgame window (s before buzzer)</label><input id="earlyWin" type="number" min="0" max="120" step="5">
+        <span class="hint">Used when early return is set to Endgame only</span></div>
+    </div>
+    <div class="robots">
+      <div class="rcard" role="group" aria-labelledby="rc-failCA"><h3 class="rname" id="rc-failCA">Robot A</h3>
+        <div class="field"><label for="failCA">Collect shortfall (%)</label><input id="failCA" type="number" min="0" max="75" step="5"></div>
+        <div class="field"><label for="missA">Launch miss rate (%)</label><input id="missA" type="number" min="0" max="90" step="5"></div>
+        <div class="field"><label for="cdriveA">Driving part of each collect (s)</label><input id="cdriveA" type="number" min="0" max="30" step="0.5"></div>
+      </div>
+      <div class="rcard" role="group" aria-labelledby="rc-failCB"><h3 class="rname" id="rc-failCB">Robot B</h3>
+        <div class="field"><label for="failCB">Collect shortfall (%)</label><input id="failCB" type="number" min="0" max="75" step="5"></div>
+        <div class="field"><label for="missB">Launch miss rate (%)</label><input id="missB" type="number" min="0" max="90" step="5"></div>
+        <div class="field"><label for="cdriveB">Driving part of each collect (s)</label><input id="cdriveB" type="number" min="0" max="30" step="0.5"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="opp-h">
+    <div class="panel-head"><h2 id="opp-h">Opponent alliance<button type="button" class="info" aria-label="About Opponent alliance" aria-expanded="false" aria-controls="info3">i</button><span class="info-text" id="info3" hidden><p>The opponent is simulated so the ball counts include their tips and the POLLEN they collect. Their HIVE appears as the Opp HIVE lane on each timeline. They use your launch, collect and failure settings, scaled by the cycle time below.</p></span></h2></div>
+    <div class="settings">
+      <div class="field"><label for="oppStrat">Opponent strategy</label><select id="oppStrat"></select>
+        <span class="hint">Used for the opponent's HIVE lane and ball counts</span></div>
+      <div class="field"><label for="oppSpeed">Opponent cycle time (% of yours)</label><input id="oppSpeed" type="number" min="25" max="400" step="5">
+        <span class="hint">120 = their collect and launch take 20% longer</span></div>
+      <div class="field"><span class="lbl">Opponent robots</span>
+        <label class="check" for="oppFlowerA"><input id="oppFlowerA" type="checkbox"> Robot A can collect from FLOWERS</label>
+        <label class="check" for="oppFlowerB"><input id="oppFlowerB" type="checkbox"> Robot B can collect from FLOWERS</label>
+        <span class="hint">Their FLOWER time is your robot's, scaled by the cycle time</span></div>
+      <div class="field"><label for="oppEndPlan">Opponent last 60 s</label><select id="oppEndPlan"><option value="hive">Keep tipping the HIVE</option><option value="flower">Fill their FLOWERS</option><option value="garden">Drop in their GARDEN</option></select></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="col-h">
+    <div class="panel-head"><h2 id="col-h"><span id="colTitle">Collect time per round (s)</span><button type="button" class="info" aria-label="About Collect time per round (s)" aria-expanded="false" aria-controls="info4">i</button><span class="info-text" id="info4" hidden><p>One round is the time from leaving the launch spot to returning with 4 balls, ready to launch. Rounds that start in AUTO collect POLLEN from a FLOWER or GARDEN; later rounds follow each strategy's ball mix. If a robot needs more rounds than listed, the last value repeats.</p></span></h2></div>
+    <div class="settings" id="simpleCollect" hidden>
+      <div class="field"><label for="collectSimpleA">Robot A collect time (s)</label><input id="collectSimpleA" type="number" min="1" max="60" step="0.5"></div>
+      <div class="field"><label for="collectSimpleB">Robot B collect time (s)</label><input id="collectSimpleB" type="number" min="1" max="60" step="0.5"></div>
+    </div>
+    <div id="roundCollect">
+    <div class="scroll"><table class="grid" id="ctable"></table></div>
+    <div class="fill">
+      <span class="lbl">Set every round</span>
+      <label for="fillA" class="hint">Robot A</label><input id="fillA" type="number" min="1" max="60" step="0.5" value="11" aria-label="Collect time for every Robot A round">
+      <label for="fillB" class="hint">Robot B</label><input id="fillB" type="number" min="1" max="60" step="0.5" value="13" aria-label="Collect time for every Robot B round">
+      <button id="fillBtn" type="button">Apply</button>
+    </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="cmp-h">
+    <div class="panel-head"><h2 id="cmp-h">Strategy comparison<button type="button" class="info" aria-label="About Strategy comparison" aria-expanded="false" aria-controls="info5">i</button><span class="info-text" id="info5" hidden><p>Sorted by points, highest first. Letters follow the ranking and change when the order does.</p><p>Points include HIVE, LEAVE, PARK, FLOWER and GARDEN points.</p><p>Each FLOWER holds up to 6 balls and starts with 4 POLLEN. Balls come out only at the bottom (everything above drops down one spot) and go in only at the top (falling to the lowest open spot). A NECTAR in the bottom spot can't be removed, so nothing more can be taken from that FLOWER, though balls can still be added while there is room. FLOWER points count every ball in the FLOWER, including the starting POLLEN.</p><p>FLOWERS: the alliance with the top-most NECTAR of its color in a FLOWER scores 2 points for every ball in its scoring volume (up to the FLOWER scoring capacity in Field Settings), and the alliance with the lowest NECTAR there gets a 5-point bottom NECTAR bonus. NECTAR may only enter FLOWERS in the last 60 s (G410). GARDENS: every ball in a GARDEN at the end scores 1 point for that GARDEN's color, including the 4 starting POLLEN, so taking POLLEN out of a GARDEN costs that alliance a point each.</p><p>Balls left in the HIVE: each POLLEN or NECTAR still in your upward-facing cell when everything comes to rest after the buzzer scores 2 points. Balls in the cell at the end of AUTO score nothing (Table 10-2).</p></span></h2></div>
+    <div class="scroll"><table class="cmp" id="cmp"></table></div>
+  </section>
+
+  <div class="legend" aria-hidden="true">
+    <span><i style="background:var(--collect)"></i>Collecting</span>
+    <span><i style="background:var(--launch)"></i>Launching</span>
+    <span><i style="background:var(--miss)"></i>Missed launch</span>
+    <span><i style="background:repeating-linear-gradient(45deg,var(--wait) 0 2px,transparent 2px 5px);border:1px solid var(--wait)"></i>Waiting for the HIVE to finish swinging</span>
+    <span><i style="background:var(--swing)"></i>HIVE swinging (tip number; opponent lighter)</span>
+    <span><i style="background:var(--park)"></i>Parking</span>
+  </div>
+  <div class="legend" aria-hidden="true">
+    <span style="font:600 12px var(--f-display);text-transform:uppercase;letter-spacing:.06em">Actions lane</span>
+    <span><i style="background:var(--alt)"></i>Alternating: one robot at the HIVE, one collecting</span>
+    <span><i style="background:var(--gap)"></i>Both collecting: nobody at the HIVE</span>
+    <span><i style="background:var(--both)"></i>Both at the HIVE: launching or waiting together</span>
+  </div>
+
+  <div id="scenarios" style="display:flex;flex-direction:column;gap:22px"></div>
+
+  <section class="panel" aria-labelledby="as-h">
+    <h2 id="as-h">How the simulation works</h2>
+    <ul class="notes">
+      <li>Match clock: AUTO 0–30 s, 8 s transition (robots stop, the HIVE keeps swinging), TELEOP 38–158 s.</li>
+      <li>Each robot starts with 4 POLLEN. The upward cell starts with 3 NECTAR (0.273 lb).</li>
+      <li>Robots launch one ball at a time. The HIVE tips the moment the cell reaches the threshold. A robot keeps any balls it has left and launches them into the new cell once the swing finishes. Nobody can launch while the HIVE is swinging.</li>
+      <li>When the HIVE tips, every ball in the cell lands on the floor. Your human player then brings in one NECTAR (5 staged). G427 releases all remaining staged NECTAR with 60 s left. NECTAR from a dumped cell goes back into the pool robots can collect.</li>
+      <li>If a strategy calls for NECTAR and none is available, the robot collects POLLEN instead.</li>
+      <li>Collect shortfall: the robot returns with fewer than 4 balls at the rate you set, spread evenly across rounds (at 10%, one ball short every 2–3 rounds). The missing balls are POLLEN, since your human player places NECTAR in a known spot. Preloads are never short.</li>
+      <li>Launch misses: the set share of launches miss the cell, spread evenly (at 10%, every 10th ball). A missed ball still takes a full launch time and lands on the floor. A missed NECTAR goes back into the collectable pool.</li>
+      <li>A launch has to finish before the robot leaves to PARK, or before 158 s. A swing still in progress at the buzzer counts. Balls left in the upward cell at the end score 2 each.</li>
+      <li>Early return: each collect round is driving out, finding balls one at a time at an even pace, then driving back. When the cell is partly full but short of tipping, a collecting robot turns back as soon as it holds enough balls to finish the tip, unless its partner can already finish it. In endgame mode this only happens inside the window you set. With early return on, a robot also cuts its last round short so it can launch before it leaves to PARK.</li>
+      <li>Your HIVE's two cells: Hive 1 is the target at the start (facing up, holding 3 NECTAR). When it tips, Hive 2 faces up and becomes the target, and so on. Odd-numbered tips empty Hive 1 and even-numbered tips empty Hive 2. The HIVE lane shows H1 or H2 for whichever cell faces up between tips.</li>
+      <li>Robot capabilities override the strategy's ball mix. A POLLEN-only robot never carries NECTAR, and a NECTAR-only robot carries as many NECTAR as are available (up to 4), so it can come back with none. The opponent uses the same capabilities as your robots.</li>
+      <li>Ball counts track all 40 POLLEN and both alliances' 8 NECTAR. The opponent runs the strategy you choose, at the cycle time you set, with your failure rates. In AUTO, robots only use their preloads and balls from known places: their own GARDEN and, if allowed, their own FLOWERS. They never pick up loose balls or NECTAR from the floor, and never touch the opponent's side (G402). In TELEOP they use both GARDENS, loose balls on the floor and FLOWERS, in the order set in Analysis options. Hover anywhere on a timeline to see the count at that moment.</li>
+      <li>Scoring for movement (Section 10): LEAVE 3 points per robot (assumed for both), AUTO PARK 5 points per robot in the LOADING ZONE at the end of AUTO, and PARK 5 points per robot in the LOADING ZONE at the end of the match. A robot set to park after AUTO stops what it is doing in time to drive to the LOADING ZONE by 30 s; if it is still carrying balls, it drives back for the same time when TELEOP starts. SWARM needs 16 points from LEAVE + AUTO PARK + PARK.</li>
+    </ul>
+  </section>
+</div>
+
+<div id="tab-an" class="tabpanel" role="tabpanel" aria-labelledby="t-an" hidden>
+  <section class="panel" aria-labelledby="mf-h">
+    <div class="panel-head"><h2 id="mf-h">Match file<button type="button" class="info" aria-label="About Match file" aria-expanded="false" aria-controls="an-i4">i</button><span class="info-text" id="an-i4" hidden><p>A match file holds everything you logged for one match: the events, team names, alliance color, the LEAVE, PARK and preload checkboxes, the video file's path or name, and the video time when AUTO starts.</p><p>Browsers can't open a video from a saved path on their own, so after loading a match file, choose that video file under Match video.</p></span></h2></div>
+    <div class="btnrow"><input id="mfLoad" type="file" accept=".json,application/json" class="sr-only"><label class="filebtn" for="mfLoad">Load match file (.json)</label><button id="mfExport" type="button" class="primary">Export match file (.json)</button></div>
+    <p class="hint" id="mfMsg" role="status"></p>
+  </section>
+
+  <section class="panel" aria-labelledby="tm-h">
+    <div class="panel-head"><h2 id="tm-h">Teams</h2></div>
+    <div class="settings"><div class="field"><label for="tmColor">Your alliance color</label><select id="tmColor"><option value="red">Red</option><option value="blue">Blue</option></select><span class="hint">The opponent gets the other color</span></div></div>
+    <div class="robots">
+      <div class="rcard" role="group" aria-labelledby="tmTitleUs"><h3 class="rname" id="tmTitleUs">Red alliance (yours)</h3>
+        <div class="field"><label for="tm-usA">Robot A team</label><input id="tm-usA" type="text" maxlength="40" placeholder="Team number or name" autocomplete="off"></div>
+        <div class="field"><label for="tm-usB">Robot B team</label><input id="tm-usB" type="text" maxlength="40" placeholder="Team number or name" autocomplete="off"></div>
+      </div>
+      <div class="rcard" role="group" aria-labelledby="tmTitleOpp"><h3 class="rname" id="tmTitleOpp">Blue alliance</h3>
+        <div class="field"><label for="tm-oppA">Robot A team</label><input id="tm-oppA" type="text" maxlength="40" placeholder="Team number or name" autocomplete="off"></div>
+        <div class="field"><label for="tm-oppB">Robot B team</label><input id="tm-oppB" type="text" maxlength="40" placeholder="Team number or name" autocomplete="off"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="vid-h">
+    <div class="panel-head"><h2 id="vid-h">Match video<button type="button" class="info" aria-label="About Match video" aria-expanded="false" aria-controls="an-i1">i</button><span class="info-text" id="an-i1" hidden><p>Load a video file of the match from your computer to watch it here while you log events. The video stays on your computer and isn't saved with the page, so load it again next time.</p><p>Set the video time when AUTO starts, and "Use video time" fills in the match time for each event. You can also watch the video somewhere else and type match times yourself.</p></span></h2></div>
+    <div class="vidgrid">
+      <div class="vidbox"><video id="vid" controls playsinline preload="metadata" hidden></video><div id="vidEmpty" class="vid-empty">No video loaded. Choose a file to watch it here.</div></div>
+      <div class="vidside">
+        <div class="field"><label for="vidFile">Video file</label><input id="vidFile" type="file" accept="video/*"></div>
+        <div class="field"><label for="vidPath">Video file path or name</label><input id="vidPath" type="text" maxlength="400" placeholder="e.g. D:\Matches\Qual-12.mp4" autocomplete="off"><span class="hint">Saved in the match file so you know which video goes with it</span></div>
+        <div class="field"><label for="vidRate">Playback speed</label><select id="vidRate"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></div>
+        <div class="field"><label for="vidOffset">Video time when AUTO starts (s)</label><input id="vidOffset" type="number" min="0" step="0.1"><button id="setOffset" type="button">Set to current video time</button></div>
+        <div class="field"><span class="lbl">Match time</span><div class="clock" id="vidClock">–</div><span class="hint" id="vidPeriod">Load a video to see the match clock</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="ev-h">
+    <div class="panel-head"><h2 id="ev-h">Log an event<button type="button" class="info" aria-label="About Log an event" aria-expanded="false" aria-controls="an-i2">i</button><span class="info-text" id="an-i2" hidden><p>Log what each robot does, in any order. The log sorts itself by time.</p><p>Leaves to collect: the robot leaves its launch spot. At launch spot: it is back and ready to launch, with the balls it picked up on that trip (choose 0 and 0 when it arrives with only its preload). Launches: one launch, or a volley of several balls of the same type, and how many missed the cell. HIVE tips: the alliance's HIVE starts to swing.</p><p>Collect times, launch times and error rates are worked out from these events using the same rules as the Planning tab.</p></span></h2></div>
+    <form id="evForm" class="evform" novalidate>
+      <div class="field"><label for="evTime">Match time (s)</label><input id="evTime" type="number" min="0" max="170" step="0.1" required><button id="evNow" type="button">Use video time</button></div>
+      <div class="field"><label for="evSide">Alliance</label><select id="evSide"><option value="us">Your alliance</option><option value="opp">Opponent</option></select></div>
+      <div class="field"><label for="evRobot">Robot</label><select id="evRobot"><option value="A">Robot A</option><option value="B">Robot B</option></select></div>
+      <div class="field"><label for="evAct">Action</label><select id="evAct"><option value="collect">Leaves to collect</option><option value="ready">At launch spot with balls</option><option value="launch">Launches</option><option value="tip">HIVE tips</option><option value="fput">Places in a FLOWER</option><option value="gput">Drops in a GARDEN</option></select></div>
+      <div class="field" data-for="ready"><label for="evP">POLLEN picked up</label><select id="evP"><option>0</option><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div>
+      <div class="field" data-for="ready"><label for="evN">NECTAR picked up</label><select id="evN"><option selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+      <div class="field" data-for="fput"><label for="evFlower">FLOWER</label><select id="evFlower"><option value="own0">Their own FLOWER 1</option><option value="own1">Their own FLOWER 2</option><option value="opp0">Other alliance FLOWER 1</option><option value="opp1">Other alliance FLOWER 2</option></select></div>
+      <div class="field" data-for="gput"><label for="evGarden">GARDEN</label><select id="evGarden"><option value="own">Their own GARDEN</option><option value="opp">Other alliance GARDEN</option></select></div>
+      <div class="field" data-for="launch fput gput"><label for="evBall">Ball</label><select id="evBall"><option value="P">POLLEN</option><option value="N">NECTAR</option></select></div>
+      <div class="field" data-for="launch fput gput"><label for="evCount">How many</label><select id="evCount"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+      <div class="field" data-for="launch"><label for="evMiss">Missed the cell</label><select id="evMiss"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+      <div class="field evsubmit"><div class="btnrow"><button type="submit" class="primary" id="evSubmit">Add event</button><button type="button" id="evCancel" hidden>Cancel</button></div><span class="err" id="evErr" role="alert"></span></div>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="fl-h">
+    <div class="panel-head"><h2 id="fl-h">Start and end of match</h2></div>
+    <div class="scroll"><table class="flags" id="flagTable"></table></div>
+  </section>
+
+  <section class="panel" aria-labelledby="evl-h">
+    <div class="panel-head"><h2 id="evl-h">Event log <span class="count" id="evCountLbl"></span></h2><div class="btnrow"><button id="evExample" type="button">Load example match</button><button id="evClear" type="button">Clear all events</button></div></div>
+    <p class="banner" id="exBanner" hidden>These are example events generated by the planner, so you can see how the analysis works. Clear them before logging your own match.</p>
+    <div class="scroll invwrap"><table class="log evtable" id="evTable"></table></div>
+    <details><summary>Copy or paste events</summary>
+      <p class="hint" style="margin:8px 0">Copy the events to share a logged match with your team, or paste events someone copied to load them here.</p>
+      <textarea id="evJson" rows="5" aria-label="Events as text"></textarea>
+      <div class="btnrow" style="margin-top:8px"><button id="evCopy" type="button">Copy events</button><button id="evPaste" type="button">Load pasted events</button><span class="hint" id="evJsonMsg" role="status"></span></div>
+    </details>
+  </section>
+
+  <section class="panel" aria-labelledby="ar-h">
+    <div class="panel-head"><h2 id="ar-h">Match results<button type="button" class="info" aria-label="About Match results" aria-expanded="false" aria-controls="an-i3">i</button><span class="info-text" id="an-i3" hidden><p>Collect time: from leaving to collect until back at the launch spot, not counting the 8 s transition. Collect shortfall: balls picked up compared with 4 per trip. Launch time: from arriving (or the previous launch, or the HIVE finishing its swing) to the launch; the median is shown. Launch miss rate: missed balls out of all balls launched.</p><p>Tip weight is the weight of the balls recorded as scoring in the cell when the HIVE tipped. Swing times come from the swing-time model in Field Settings.</p><p>Balls left in the HIVE: each POLLEN or NECTAR still in your upward-facing cell when everything comes to rest after the buzzer scores 2 points. Balls in the cell at the end of AUTO score nothing (Table 10-2).</p></span></h2><button id="applyPlan" type="button" class="primary">Use your robots' numbers in Planning</button></div>
+    <div class="scroll"><table class="cmp" id="anSummary"></table></div>
+    <div class="scroll"><table class="cmp" id="anRobots"></table></div>
+    <p class="hint" id="anTip"></p>
+    <ul class="warns" id="anWarn"></ul>
+  </section>
+
+  <section class="panel scen" aria-labelledby="atl-h">
+    <div class="scen-head"><div><div class="eyebrow">Recorded match</div><h3 id="atl-h">Match timelines</h3><p class="desc">Each alliance's robots and HIVE, with the other alliance's HIVE for comparison, rebuilt from the event log. The Strategy lane shows which Planning strategy each tip matched most closely, by its mix of POLLEN and NECTAR. Hover to see the ball count at any moment.</p></div></div>
+    <h4 class="tl-h" id="anChartUsH"></h4>
+    <div class="scroll chart" id="anChart"></div>
+    <h4 class="tl-h" id="anChartOppH"></h4>
+    <div class="scroll chart" id="anChartOpp"></div>
+    <details open><summary>Tips and matching strategy</summary><p class="hint" id="anRoundsSum" style="margin:8px 0 6px"></p><div class="scroll"><table class="log evtable" id="anRounds"></table></div></details>
+    <details><summary id="anInvSum">Ball count log</summary><div id="anInv"></div></details>
+  </section>
+</div>
+</div>
+
+<script>
+const T_AUTO=30,T_TELE=38,T_END=158,G427=98,AXIS_END=166;
+const DEFAULTS={launchA:0.8,launchB:1.0,driveA:2,driveB:3,parkA:4,parkB:4,failCA:0,failCB:0,missA:0,missB:0,autoParkA:false,autoParkB:false,parkEndA:true,parkEndB:true,threshold:0.438,wP:0.055,wN:0.091,model:'phys',optErrors:true,optOpp:true,optSimple:false,optAutoNectar:true,prefSource:'garden',optOppFlowers:true,collectSimpleA:11,collectSimpleB:13,oppStrat:'s1',oppSpeed:100,early:'endgame',earlyWin:20,cdriveA:4,cdriveB:4,capCA:'both',capCB:'both',capLA:'demand',capLB:'demand',styleA:'one',styleB:'one',topA:false,topB:false,flowerA:false,flowerB:false,flowerTimeA:8,flowerTimeB:8,oppFlowerA:false,oppFlowerB:false,endPlanA:'hive',endPlanB:'hive',oppEndPlan:'hive',flowerCap:6,capV:1,phK:1.244,phW0:0.352,lnA:10.087,lnB:13.338,oppV:1,maxPA:4,maxPB:4,maxNA:4,maxNB:4,
+  rounds:14,collectA:[7,11,11,11,11,11,11,11,11,11,11,11,11,11],collectB:[8,13,13,13,13,13,13,13,13,13,13,13,13,13]};
+const SCENARIOS=[
+  {id:'s1',name:'7 POLLEN + 1 NECTAR',desc:'Robot A carries 4 POLLEN and Robot B carries 3 POLLEN + 1 NECTAR. Two loads per tip at about 0.476 lb. This is the recommended plan.',mix:[0,1]},
+  {id:'s2',name:'6 POLLEN + 2 NECTAR',desc:'Each robot carries 3 POLLEN + 1 NECTAR, about 0.512 lb per tip. Heavier loads give a faster swing but need more NECTAR.',mix:[1,1]},
+  {id:'s3',name:'POLLEN only: 8 tips the HIVE',desc:'Both robots carry 4 POLLEN. 8 POLLEN (0.44 lb) just clears the threshold, so the swing is slow.',mix:[0,0]},
+  {id:'s4',name:'POLLEN only: 8 falls short',desc:'Both robots carry 4 POLLEN, but light balls mean 8 POLLEN does not tip. The 9th ball comes from the next load.',mix:[0,0],shortBy8:true},
+  {id:'s5',name:'5 POLLEN + 3 NECTAR',desc:'Robot A carries 3 POLLEN + 1 NECTAR and Robot B carries 2 POLLEN + 2 NECTAR, about 0.548 lb per tip. Fast swing, but each tip ties up 3 of your 8 NECTAR until they are collected again.',mix:[1,2]},
+  {id:'s6',name:'4 POLLEN + 4 NECTAR',desc:'Each robot carries 2 POLLEN + 2 NECTAR, about 0.584 lb per tip. The fastest swing, but each tip ties up half your NECTAR. When NECTAR runs short, robots substitute POLLEN.',mix:[2,2]}
+];
+
+/* ---------- simulation (pure) ---------- */
+let SW={k:1.244,w0:0.352,a:10.087,b:13.338};
+function setSW(P){const n=(v,d)=>isFinite(+v)&&+v>0?+v:d;SW={k:n(P.phK,1.244),w0:isFinite(+P.phW0)?+P.phW0:0.352,a:n(P.lnA,10.087),b:isFinite(+P.lnB)?+P.lnB:13.338}}
+function swingTime(W,model){return model==='lin'?Math.max(0.5,SW.a-SW.b*W):SW.k/Math.sqrt(Math.max(W-SW.w0,0.004))}
+function place(s,d,split){
+  if(s>=T_AUTO&&s<T_TELE)s=T_TELE;
+  if(s<T_AUTO&&s+d>T_AUTO+1e-9){if(split)return{s,e:s+d+(T_TELE-T_AUTO),split:true};s=T_TELE}
+  return{s,e:s+d,split:false};
+}
+function simulate(sc,P,ext){
+  const th=sc.shortBy8?Math.max(P.threshold,8*P.wP+0.001):P.threshold;
+  const hive={cell:['N','N','N'],swingUntil:0,tips:[],up:1};
+  const nectar={free:0,staged:5,pending:0,q:[]};const log=[];const autoN=P.optAutoNectar!==false;
+  const CAP=Math.max(1,Math.round(+P.flowerCap||6)),P4=()=>['P','P','P','P'],res={gOwn:4,gOpp:4,fOwn:[P4(),P4()],fOpp:[P4(),P4()],floor:0,q:[],busy:{gOwn:0,gOpp:0,fOwn:[0,0],fOpp:[0,0]}};
+  const lead=a=>{let n=0;while(n<a.length&&a[n]==='P')n++;return n};
+  const getAv=(wh,i)=>wh==='floor'?res.floor:Array.isArray(res[wh])?lead(res[wh][i]):res[wh];
+  const take=(wh,i,k)=>{if(wh==='floor')res.floor=Math.max(0,res.floor-k);else if(Array.isArray(res[wh]))res[wh][i].splice(0,Math.min(k,lead(res[wh][i])));else res[wh]=Math.max(0,res[wh]-k)};
+  const give=(wh,i,k)=>{if(wh==='floor')res.floor+=k;else if(Array.isArray(res[wh])){for(let q=0;q<k;q++){if(res[wh][i].length<CAP)res[wh][i].unshift('P');else res.floor++}}else if(wh in res)res[wh]+=k};
+  const isBusy=(wh,i,t)=>wh==='floor'?false:(Array.isArray(res.busy[wh])?res.busy[wh][i]:res.busy[wh])>t+1e-9;
+  const setBusy=(wh,i,u)=>{if(wh==='floor'||!(wh in res.busy))return;if(Array.isArray(res.busy[wh]))res.busy[wh][i]=Math.max(res.busy[wh][i],u);else res.busy[wh]=Math.max(res.busy[wh],u)};
+  const X=(ext||[]).slice().sort((a,b)=>a.t-b.t);let xi=0;
+  const tick=t=>{res.q=res.q.filter(x=>{if(x.t<=t+1e-9){res.floor+=x.k;return false}return true});
+    while(xi<X.length&&X[xi].t<=t+1e-9){const e=X[xi++];if(e.add)res.floor+=e.add;if(e.fput){const st=res[e.fput][e.idx||0];if(st.length<CAP)st.push(e.ball);else res.floor+=e.ball==='P'?1:0}if(e.w){take(e.w,e.idx||0,e.k||1);if(e.until!==undefined)setBusy(e.w,e.idx||0,e.until)}}};
+  const w=b=>b==='N'?P.wN:P.wP;
+  const cellW=()=>hive.cell.reduce((a,b)=>a+w(b),0);
+  const mode=P.early||'off',win=P.earlyWin??20;
+  const adv=(t,d)=>{if(t>=T_AUTO&&t<T_TELE)t=T_TELE;if(t<T_AUTO&&t+d>T_AUTO+1e-9)return t+d+(T_TELE-T_AUTO);return t+d};
+  const mk=(id,i)=>({id,i,L:P['launch'+id],t:P['drive'+id],C:P['collect'+id],D:Math.max(0,P['cdrive'+id]||0),stop:P['parkEnd'+id]!==false?T_END-P['park'+id]:T_END,pe:P['parkEnd'+id]!==false,ap:!!P['autoPark'+id],pk:Math.max(0,+P['park'+id]||0),apDone:false,apOk:false,
+    capC:P['capC'+id]||'both',capL:P['capL'+id]||'demand',style:P['style'+id]||'one',fill:!!P['top'+id],flower:!!P['flower'+id],F:Math.max(1,+P['flowerTime'+id]||8),eplan:P['endPlan'+id]||'hive',
+    balls:['P','P','P','P'],round:0,done:false,phase:'idle',plan:null,segs:[{k:'drive',s:0,e:P['drive'+id]}],wait:0,launched:0,
+    fc:(P['failC'+id]||0)/100,fm:(P['miss'+id]||0)/100,cDebt:0.5,mDebt:0.5,misses:0,short:0,earlyN:0});
+  const R=[mk('A',0),mk('B',1)];
+  for(const r of R){r.canP=r.capC!=='nectar'&&r.capL!=='nectar';r.canN=r.capC!=='pollen'&&r.capL!=='pollen';
+    r.maxP=r.canP?Math.max(0,Math.min(4,Math.round(P['maxP'+r.id]??4))):0;r.maxN=r.canN?Math.max(0,Math.min(4,Math.round(P['maxN'+r.id]??4))):0;
+    if(r.maxP===0)r.canP=false;if(r.maxN===0)r.canN=false;
+    const keep=r.canP?r.maxP:0;if(keep<4){r.dropped=4-keep;r.balls=Array(keep).fill('P');log.push({t:0,op:'drop',a:r.id,n:r.dropped,why:r.canP?'cap':'type'});res.floor+=r.dropped}
+    if(!r.canP&&!r.canN)r.done=true}
+  const pickBall=r=>{if(r.capL!=='demand'||r.balls.length<2)return 0;const W=cellW();let done=-1,heavy=0;
+    r.balls.forEach((b,i)=>{if(W+w(b)>=th-1e-9&&(done<0||w(b)<w(r.balls[done])))done=i;if(w(b)>w(r.balls[heavy]))heavy=i});return done>=0?done:heavy};
+  const needK=list=>{let W=cellW(),k=0;for(const b of list){if(W>=th-1e-9)break;W+=w(b);k++}return W>=th-1e-9?k:Infinity};
+  const turnBack=(r,now,why)=>{const pl=r.plan;(pl.src||[]).slice(pl.found).forEach(([wh,ix])=>{if(wh==='N')nectar.free++;else give(wh,ix,1)});
+    pl.comp=pl.comp.slice(0,pl.found);if(pl.src)pl.src=pl.src.slice(0,pl.found);pl.why=why;r.phase='back';pl.backAt=adv(now,r.D/2);if(why)r.earlyN++};
+  const tryReturn=(r,now,other)=>{
+    if(mode==='off'||r.done||r.phase!=='search')return;
+    if(mode==='endgame'&&now<T_END-win-1e-9)return;
+    if(now<hive.swingUntil-1e-9||hive.cell.length===0)return;
+    const pl=r.plan;if((pl.found===0&&!r.balls.length)||pl.found>=pl.comp.length)return;
+    const k=needK([...r.balls,...pl.comp.slice(0,pl.found)]);if(k===Infinity||k===0)return;
+    if(other.phase==='idle'&&!other.done&&other.balls.length&&needK(other.balls)!==Infinity)return;
+    if(other.phase==='back'&&needK(other.plan.comp)!==Infinity&&other.plan.backAt<=adv(now,r.D/2)+1e-9)return;
+    turnBack(r,now,'short');
+  };
+  const fIdx=r=>{const nNh=r.balls.includes('N'),fst=res.fOwn,own=q=>fst[q].includes('N'),room=[0,1].filter(q=>fst[q].length<(nNh||own(q)?CAP:CAP-1));const pick=l=>l.sort((x,y)=>fst[x].length-fst[y].length)[0];return room.length?(nNh?pick(room.filter(q=>!own(q)))??pick(room):pick(room.filter(own))??pick(room)):-1};
+  const fRoom=()=>res.fOwn.some(f=>f.length<CAP);
+  for(let it=0;it<20000;it++){
+    let best=null;
+    for(const r of R){
+      if(r.done)continue;let c;const pl=r.plan;
+      if(r.phase==='idle'){
+        if(r.balls.length){
+          if((r.eplan==='garden'||r.eplan==='flower'&&fIdx(r)>=0)&&Math.max(r.t,hive.swingUntil)>=G427-1e-9){const f=place(Math.max(r.t,G427),r.L,false);if(f.e>r.stop+1e-9){r.done=true;continue}c={r,type:'deliver',...f}}
+          else{
+          const hN=r.balls.filter(b=>b==='N').length,open=4-r.balls.length,room=Math.max(0,r.maxP-(r.balls.length-hN))+Math.max(0,r.maxN-hN);
+          let top=null;
+          if(r.fill&&open>0&&room>0&&hive.swingUntil>r.t+0.05){let s=r.t;if(s>=T_AUTO&&s<T_TELE)s=T_TELE;const C=r.C[Math.min(r.round,r.C.length-1)],S=Math.max(0.5,C-r.D)*open/4;
+            if(adv(s,r.D+S)+r.L<=r.stop+1e-9)top={r,type:'cstart',s,e:s,C,S,top:true}}
+          if(top)c=top;
+          else{const s0=Math.max(r.t,hive.swingUntil);const f=place(s0,r.L,false);
+            if(f.e>r.stop+1e-9){r.done=true;continue}c={r,type:'launch',...f};}}}
+        else{let s=r.t;if(s>=T_AUTO&&s<T_TELE)s=T_TELE;const C=r.C[Math.min(r.round,r.C.length-1)];const S=Math.max(0.5,C-r.D);
+          const fits=adv(s,C)+r.L<=r.stop+1e-9;
+          const minFit=mode!=='off'&&adv(s,r.D+S/4)+r.L<=r.stop+1e-9;
+          if(!fits&&!minFit){r.done=true;continue}
+          c={r,type:'cstart',s,e:s,C,S};}
+        if(r.ap&&!r.apDone){const aStop=T_AUTO-r.pk;
+          if(r.t>=T_AUTO-1e-9){r.apDone=true;r.apOk=false}
+          else{const end=c.type==='launch'?c.e:adv(c.s,c.top?r.D+c.S:c.C);if(end>aStop+1e-9){let c2=null;
+            if(r.fill&&r.canP&&!c.idleAuto&&r.t<aStop-0.5){const hN=r.balls.filter(b=>b==='N').length,open=Math.min(4-r.balls.length,Math.max(0,r.maxP-(r.balls.length-hN))),C=r.C[Math.min(r.round,r.C.length-1)];let s0=r.t;
+              let av=getAv('gOwn',0)*!isBusy('gOwn',0,r.t)+(r.flower?[0,1].reduce((a,q)=>a+(isBusy('fOwn',q,r.t)?0:getAv('fOwn',q)),0):0);
+                            const win=aStop-s0;for(let k=Math.min(open,av);k>0;k--){const S=Math.max(0.5,C-r.D)*k/4,need=Math.max(r.D+S,r.flower?r.F*k/4:0);if(need<=win+1e-9){c2={r,type:'cstart',s:s0,e:s0,C,S,top:true,maxK:k,idleAuto:true};break}}}
+            c=c2||{r,type:'apark',e:Math.max(r.t,aStop)}}}}
+      }else if(r.phase==='out')c={r,type:'arrive',e:pl.outEnd};
+      else if(r.phase==='search')c={r,type:'found',e:pl.nextT};
+      else c={r,type:'home',e:pl.backAt};
+      if(!best||c.e<best.e-1e-9)best=c;
+    }
+    if(!best)break;
+    const r=best.r,other=R[1-r.i],pl=r.plan;
+    if(best.type==='launch'){
+      if(best.s>r.t+1e-9){r.segs.push({k:'wait',s:r.t,e:best.s});r.wait+=waitDur(r.t,best.s)}
+      const vol=r.style==='all'?r.balls.splice(0):[r.balls.splice(pickBall(r),1)[0]];
+      let hits=[];
+      for(const b of vol){r.launched++;r.mDebt+=r.fm;
+        if(r.mDebt>=1-1e-9){r.mDebt-=1;r.misses++;r.segs.push({k:'miss',s:best.s,e:best.e,ball:b});log.push({t:best.e,op:'miss',a:r.id,ball:b});if(b==='N')nectar.free++;else res.floor++}
+        else{hits.push(b);r.segs.push({k:'launch',s:best.s,e:best.e,ball:b});log.push({t:best.e,op:'launch',a:r.id,ball:b});hive.cell.push(b)}}
+      r.t=best.e;
+      const W=cellW();
+      if(hits.length&&W>=th-1e-9){
+        const sw=swingTime(W,P.model),nN=hive.cell.filter(x=>x==='N').length;
+        hive.tips.push({n:hive.tips.length+1,t:best.e,W,balls:hive.cell.length,nN,nP:hive.cell.length-nN,swing:sw,end:best.e+sw,by:r.id,auto:best.e+sw<=T_TELE,cellNo:hive.up});hive.up=3-hive.up;
+        log.push({t:best.e+sw,op:'dump',n:hive.tips.length,P:hive.cell.length-nN,N:nN});
+        const tEnd=best.e+sw;if(nN)nectar.q.push({t:tEnd,k:nN});if(hive.cell.length-nN)res.q.push({t:tEnd,k:hive.cell.length-nN});
+        if(best.e>=G427&&nectar.staged>0){log.push({t:G427,op:'release',k:nectar.staged,g427:true});nectar.q.push({t:G427,k:nectar.staged});nectar.staged=0}
+        if(nectar.staged>0){nectar.staged--;if(!autoN&&best.e<T_AUTO)nectar.pending++;else{nectar.q.push({t:tEnd,k:1});log.push({t:tEnd,op:'release',k:1})}}
+        hive.cell=[];hive.swingUntil=best.e+sw;
+      }else tryReturn(other,best.e,r);
+    }else if(best.type==='deliver'){
+      const nNh=r.balls.filter(x=>x==='N').length;let idx=-1;
+      if(r.eplan==='flower')idx=fIdx(r);
+      let bi=0;if(idx>=0){const fo=res.fOwn[idx];if(nNh&&(r.balls.length===1||fo.length===0&&nNh>=2||!fo.includes('N')&&fo.length>=CAP-1))bi=r.balls.indexOf('N');else{bi=r.balls.indexOf('P');if(bi<0)bi=0}}
+      const b=r.balls.splice(bi,1)[0];
+      if(idx>=0){res.fOwn[idx].push(b);log.push({t:best.e,op:'fput',a:r.id,fside:'own',idx,ball:b});r.segs.push({k:'launch',s:best.s,e:best.e,ball:b,place:'FLOWER '+(idx+1)})}
+      else{log.push({t:best.e,op:'gput',a:r.id,gside:'own',ball:b});r.segs.push({k:'launch',s:best.s,e:best.e,ball:b,place:'GARDEN'})}
+      r.t=best.e;
+    }else if(best.type==='apark'){const aStop=T_AUTO-r.pk,s0=Math.max(r.t,aStop),e0=s0+r.pk;
+      r.segs.push({k:'park',s:s0,e:Math.min(e0,T_AUTO),auto:true});r.apDone=true;r.apOk=e0<=T_AUTO+1e-9;r.t=T_TELE;
+      if(r.balls.length){r.segs.push({k:'drive',s:T_TELE,e:T_TELE+r.pk});r.t=T_TELE+r.pk}
+    }else if(best.type==='cstart'){
+      nectar.q=nectar.q.filter(x=>{if(x.t<=best.s+1e-9){nectar.free+=x.k;return false}return true});
+      if(nectar.pending&&best.s>=T_TELE){log.push({t:T_TELE,op:'release',k:nectar.pending,held:true});nectar.free+=nectar.pending;nectar.pending=0}
+      if(best.s>=G427&&nectar.staged>0){log.push({t:G427,op:'release',k:nectar.staged,g427:true});nectar.free+=nectar.staged;nectar.staged=0}
+      tick(best.idleAuto?best.s+r.D/2:best.s);
+      const hN=r.balls.filter(b=>b==='N').length,hP=r.balls.length-hN,slots=Math.min(4-r.balls.length,best.maxK||4),mP=Math.max(0,r.maxP-hP),mN=Math.max(0,r.maxN-hN);
+      let nN,nP;
+      if(best.idleAuto){nP=Math.min(slots,mP);nN=0}
+      else if(best.s<T_AUTO){nP=r.canP?Math.min(slots,mP):0;nN=0}
+      else{let want=r.canP?Math.max(0,SCN_MIX(sc,r.i)-hN):slots;if(r.eplan==='flower'&&best.s>=G427-15&&hN===0&&res.fOwn.some(f=>f.length<CAP&&!f.includes('N')))want=Math.max(want,1);nN=Math.min(want,mN,nectar.free,slots);nP=Math.min(slots-nN,mP);
+        nN+=Math.max(0,Math.min(slots-nN-nP,mN-nN,nectar.free-nN))}
+      r.cDebt+=4*r.fc;const lost=Math.min(Math.max(0,nN+nP-1),Math.floor(r.cDebt+1e-9));r.cDebt-=lost;r.short+=lost;
+      {const lp=Math.min(lost,nP);nP-=lp;nN-=lost-lp}
+      const auto=best.s<T_AUTO,gard=[['gOwn',0],...(auto?[]:[['gOpp',0]])],own=r.flower?[['fOwn',0],['fOwn',1]]:[],oppF=r.flower&&!auto&&P.optOppFlowers!==false?[['fOpp',0],['fOpp',1]]:[];
+      const order=(P.prefSource==='flowers'?[...own,...gard,['floor',0],...oppF]:[...gard,['floor',0],...own,...oppF]).filter(x=>!auto||x[0]!=='floor');
+      const src=[],used=[];let need=nP;
+      for(const [wh,ix] of order){if(!need)break;if(isBusy(wh,ix,best.s))continue;const k=Math.min(need,getAv(wh,ix));if(k<=0)continue;take(wh,ix,k);need-=k;for(let q=0;q<k;q++)src.push([wh,ix]);used.push([wh,ix])}
+      const kP=nP-need;
+      if(nN+kP===0){const dead=auto&&!best.top&&!r.balls.length,e1=dead?(r.ap&&!r.apDone?Math.max(best.s+0.01,T_AUTO-r.pk):T_TELE):best.s+1,lw=r.segs[r.segs.length-1];if(lw&&lw.k==='wait'&&lw.nothing&&Math.abs(lw.e-best.s)<1e-6&&!lw.auto&&!dead)lw.e=e1;else r.segs.push({k:'wait',s:best.s,e:e1,nothing:true,auto:dead});r.t=e1;continue}
+      nectar.free-=nN;const comp=[...Array(nN).fill('N'),...Array(kP).fill('P')];
+      const nF=src.filter(x=>x[0].startsWith('fO')).length,base=best.top?(r.D+best.S):best.C;
+      const dur=Math.max(1,base*(comp.length-nF)/Math.max(1,slots)+r.F*nF/4),S=Math.max(0.1,dur-r.D),until=adv(best.s,dur);
+      for(const [wh,ix] of used)setBusy(wh,ix,until);
+      if(!best.top)r.round++;
+      r.plan={idleAuto:!!best.idleAuto,s:best.s,comp,found:0,n:comp.length,S,lost,round:r.round,outEnd:adv(best.s,r.D/2),why:null,top:!!best.top,src:[...Array(nN).fill(['N',0]),...src],nF};r.phase='out';r.t=best.s;
+    }else if(best.type==='arrive'){
+      if(pl.n===0){r.phase='back';pl.backAt=adv(pl.outEnd,pl.S+r.D/2)}else{r.phase='search';pl.nextT=adv(pl.outEnd,pl.S/pl.n)}
+    }else if(best.type==='found'){
+      const now=best.e;pl.found++;
+      if(pl.found>=pl.n){r.phase='back';pl.backAt=adv(now,r.D/2)}
+      else{pl.nextT=adv(now,pl.S/pl.n);
+        if(mode!=='off'&&adv(pl.nextT,r.D/2)+r.L>r.stop+1e-9)turnBack(r,now,'time');
+        else tryReturn(r,now,other);}
+    }else{
+      r.segs.push({k:'collect',s:pl.s,e:pl.backAt,split:pl.s<T_AUTO&&pl.backAt>T_AUTO,round:pl.round,comp:pl.comp,lost:pl.lost,why:pl.why,top:pl.top,idleAuto:pl.idleAuto,src:(pl.src||[]).map(x=>x[0])});
+      log.push({t:pl.backAt,s:pl.s,op:'collect',a:r.id,comp:[...pl.comp],src:(pl.src||[]).map(([wh,ix])=>wh.startsWith('fO')?wh+ix:wh)});
+      r.balls=[...r.balls,...pl.comp];r.t=pl.backAt;r.phase='idle';r.plan=null;
+    }
+  }
+  if(nectar.pending)log.push({t:T_TELE,op:'release',k:nectar.pending,held:true});
+  if(nectar.staged>0){log.push({t:G427,op:'release',k:nectar.staged,g427:true});nectar.staged=0}
+  for(const r of R){if(r.pe)r.segs.push({k:'park',s:r.stop,e:T_END});r.left=r.balls.length}
+  const tips=hive.tips.length,autoTips=hive.tips.filter(t=>t.auto).length,left=hive.cell.length;
+  const leave=6,autoPark=R.filter(r=>r.apOk).length*5,endPark=R.filter(r=>r.pe).length*5,park=autoPark+endPark,hivePts=tips*20+left*2;
+  return{sc,th,R,hive,log,tips,autoTips,left,leftW:cellW(),hivePts,leave,park,autoPark,endPark,total:hivePts+leave+park,
+    cov:coverage(R),p1:tips>=4,p2:tips>=7,swarm:leave+park>=16,wait:R[0].wait+R[1].wait};
+}
+function extFrom(log){const mir=w=>w==='gOwn'?'gOpp':w==='gOpp'?'gOwn':w.startsWith('fOwn')?'fOpp'+w.slice(4):w.startsWith('fOpp')?'fOwn'+w.slice(4):w;const X=[];
+  for(const o of log){
+    if(o.op==='collect'&&o.src)o.src.forEach(w=>{if(w==='N')return;const m=mir(w);if(m.startsWith('fO'))X.push({t:o.s,w:m.slice(0,4),idx:+m.slice(4),k:1,until:o.t});else X.push({t:o.s,w:m,k:1,until:o.t})});
+    else if(o.op==='dump'&&o.P)X.push({t:o.t,add:o.P});
+    else if(o.op==='fput'&&o.fside==='own')X.push({t:o.t,fput:'fOpp',idx:o.idx||0,ball:o.ball});
+    else if(o.op==='miss'&&o.ball==='P')X.push({t:o.t,add:1});
+    else if(o.op==='drop')X.push({t:o.t,add:o.n})}
+  return X}
+function zoneScore(st,cap){const pts={us:0,opp:0},fl={us:[],opp:[]};
+  for(const side of ['us','opp'])(st.fq?st.fq[side]:[[],[]]).forEach((stack0,i)=>{const stack=stack0.slice(0,cap),Ns=stack.filter(x=>x[0]==='N');let owner=null,bonus=null;
+    if(Ns.length){owner=Ns[Ns.length-1].slice(1);pts[owner]+=2*stack.length;bonus=Ns[0].slice(1);pts[bonus]+=5}fl[side].push({n:stack.length,owner,bonus})});
+  const gU=st.garden.us+(st.gN?st.gN.us:0),gO=st.garden.opp+(st.gN?st.gN.opp:0);pts.us+=gU;pts.opp+=gO;
+  return{...pts,fl,gU,gO}}
+function inventory(us,opp,nm,caps){
+  const st={rob:{usA:{P:4,N:0},usB:{P:4,N:0},oppA:{P:4,N:0},oppB:{P:4,N:0}},up:{us:1,opp:1},cellP:{us:0,opp:0},cellN:{us:3,opp:3},robP:{us:8,opp:8},robN:{us:0,opp:0},floorN:{us:0,opp:0},staged:{us:5,opp:5},flower:{us:8,opp:8},fq:{us:[['P','P','P','P'],['P','P','P','P']],opp:[['P','P','P','P'],['P','P','P','P']]},gN:{us:0,opp:0},nPl:{us:0,opp:0},garden:{us:4,opp:4},floorP:0,short:0};
+  const spread=(o)=>{if(o.op!=='collect'||!(o.t>o.s)||o.comp.length<1)return[o];
+    const n=o.comp.length,ov=Math.max(0,Math.min(o.t,T_TELE)-Math.max(o.s,T_AUTO)),d=o.t-o.s-ov;
+    return o.comp.map((b,k)=>{let tau=o.s+(k+1)*d/n;if(o.s<T_AUTO&&tau>T_AUTO+1e-9)tau+=T_TELE-T_AUTO;return{...o,t:k===n-1?o.t:tau,comp:[b],src:o.src?[o.src[k]]:undefined,part:k+1,of:n,i:o.i+k*1e-3}})};
+  const ops=[...us.log.map((o,i)=>({...o,side:'us',i})),...opp.log.map((o,i)=>({...o,side:'opp',i:i+1e5}))].flatMap(spread).sort((a,b)=>a.t-b.t||a.i-b.i);
+  const snap=(t,label,side)=>({t,label,side,st:JSON.parse(JSON.stringify(st))});
+  const snaps=[snap(0,'Match start: 4 POLLEN in each robot, 3 NECTAR in each upward cell','')];
+  const other=x=>x==='us'?'opp':'us';
+  const takeP=(side,k,auto,a)=>{const okF=!caps||!!caps[side+a];
+    const src=(auto?[['garden',side],['flower',side]]:[['floor'],['garden',other(side)],['garden',side],['flower',side],['flower',other(side)]]).filter(x=>okF||x[0]!=='flower');
+    for(const [where,sd] of src){if(!k)break;const have=where==='floor'?st.floorP:where==='flower'?st.fq[sd].reduce((a,f)=>{let n=0;while(n<f.length&&f[n]==='P')n++;return a+n},0):st[where][sd];const n=Math.min(have,k);if(where==='floor')st.floorP-=n;else{st[where][sd]-=n;if(where==='flower'){let m=n;for(let q=0;q<2&&m;q++)while(m&&st.fq[sd][q][0]==='P'){st.fq[sd][q].shift();m--}}}k-=n}
+    st.short+=k;
+  };
+  const who=o=>nm?nm[o.side]:(o.side==='us'?'You':'Opp');const rn=o=>nm?esc(nm[o.side+o.a]):'Robot '+o.a;
+  for(let o of ops){const sd=o.side;let label='';
+    if(o.op==='collect'){const nN=o.comp.filter(b=>b==='N').length,nP=o.comp.length-nN;
+      if(o.src&&o.src.length===o.comp.length)o.comp.forEach((b,k)=>{if(b!=='P')return;const w=o.src[k],os=other(sd);let pool=null;
+        if(w==='floor'){if(st.floorP>0){st.floorP--;return}}else{const [obj,key]=w==='gOwn'?['garden',sd]:w==='gOpp'?['garden',os]:w.startsWith('fOwn')?['flower',sd]:['flower',os];
+          if(obj==='flower'){const q=+w.slice(4)||0;if(st.fq[key][q][0]==='P'){st.fq[key][q].shift();st.flower[key]--;return}}else if(st[obj][key]>0){st[obj][key]--;return}}
+        o._fb=true;takeP(sd,1,o.s<T_AUTO,o.a)});else takeP(sd,nP,o.s<T_AUTO,o.a);st.floorN[sd]=Math.max(0,st.floorN[sd]-nN);st.robP[sd]+=nP;st.robN[sd]+=nN;if(st.rob[sd+o.a]){st.rob[sd+o.a].P+=nP;st.rob[sd+o.a].N+=nN}label=`${who(o)} · ${rn(o)} ${o.of?`picks up ${o.comp[0]==='N'?'a NECTAR':'a POLLEN'}${o.src&&o.src[0]&&o.src[0]!=='N'&&!o._fb?({floor:' from the floor',gOwn:' from its GARDEN',gOpp:' from the other GARDEN'}[o.src[0]]||(o.src[0].startsWith('fOwn')?' from its own FLOWER':' from the other alliance\'s FLOWER')):''} (${o.part} of ${o.of})`:`collects ${ballTxt(o.comp)||'nothing'}`}`}
+    else if(o.op==='launch'){const rb=st.rob[sd+o.a];if(o.ball==='N'){st.robN[sd]--;st.cellN[sd]++;if(rb)rb.N=Math.max(0,rb.N-1)}else{st.robP[sd]--;st.cellP[sd]++;if(rb)rb.P=Math.max(0,rb.P-1)}label=`${who(o)} · ${rn(o)} launches ${o.ball==='N'?'NECTAR':'POLLEN'} into ${o.side==='us'?`Hive ${st.up.us}`:'their HIVE'}`}
+    else if(o.op==='miss'){const rb=st.rob[sd+o.a];if(o.ball==='N'){st.robN[sd]--;st.floorN[sd]++;if(rb)rb.N=Math.max(0,rb.N-1)}else{st.robP[sd]--;st.floorP++;if(rb)rb.P=Math.max(0,rb.P-1)}label=`${who(o)} · ${rn(o)} misses with ${o.ball==='N'?'NECTAR':'POLLEN'}`}
+    else if(o.op==='dump'){st.cellP[sd]-=o.P;st.cellN[sd]-=o.N;st.floorP+=o.P;st.floorN[sd]+=o.N;label=`${who(o)} · ${o.side==='us'?`Hive ${st.up.us} finishes tip ${o.n}, dumping`:`tip ${o.n} dumps`} ${o.P} P + ${o.N} N on the floor${o.side==='us'?`; Hive ${3-st.up.us} now faces up`:''}`;st.up[sd]=3-st.up[sd]}
+    else if(o.op==='fput'||o.op==='gput'){const rb=st.rob[sd+o.a],key=(o.op==='fput'?o.fside:o.gside)==='own'?sd:other(sd);
+      if(o.ball==='N'){st.robN[sd]--;st.nPl[sd]++;if(rb)rb.N=Math.max(0,rb.N-1)}else{st.robP[sd]--;if(rb)rb.P=Math.max(0,rb.P-1)}
+      let fi=o.idx||0;const fcap=Math.round((typeof P!=='undefined'&&+P.flowerCap)||6);if(o.op==='fput'&&st.fq[key][fi].length>=fcap){if(st.fq[key][1-fi].length<fcap)fi=1-fi;else o={...o,op:'gput',gside:o.fside}}
+      if(o.op==='fput'){st.fq[key][fi].push(o.ball==='N'?'N'+sd:'P');if(o.ball!=='N')st.flower[key]++;label=`${who(o)} · ${rn(o)} places ${o.ball==='N'?'NECTAR':'POLLEN'} in ${key===sd?'its':'the other'} FLOWER ${fi+1}`}
+      else{if(o.ball==='N')st.gN[key]++;else st.garden[key]++;label=`${who(o)} · ${rn(o)} drops ${o.ball==='N'?'NECTAR':'POLLEN'} in ${key===sd?'its':'the other'} GARDEN`}}
+    else if(o.op==='drop'){st.robP[sd]-=o.n;st.floorP+=o.n;if(st.rob[sd+o.a])st.rob[sd+o.a].P=Math.max(0,st.rob[sd+o.a].P-o.n);label=`${who(o)} · ${rn(o)} ${o.why==='absent'?`is hidden, so its 4 preloaded POLLEN start on the floor`:o.why==='nopre'?`starts without preloaded POLLEN`:o.why==='cap'?`can only hold ${4-o.n} POLLEN, so it drops ${o.n} preloaded POLLEN`:`can't use POLLEN, so it drops its ${o.n} preloaded POLLEN`}`}
+    else if(o.op==='release'){st.staged[sd]-=o.k;st.floorN[sd]+=o.k;label=`${who(o)} · human player adds ${o.k} NECTAR${o.g427?' (60 s left)':o.held?' held from AUTO tips':''}`}
+    snaps.push(snap(o.t,label,sd));
+  }
+  return snaps;
+}
+function coverage(R){
+  const pts=new Set([0,T_AUTO,T_TELE,T_END]);for(const r of R)for(const s of r.segs){pts.add(s.s);pts.add(s.e)}
+  const b=[...pts].filter(t=>t>=0&&t<=T_END).sort((x,y)=>x-y);
+  const at=(r,m)=>{for(const s of r.segs)if(s.s<=m&&m<s.e)return(s.k==='launch'||s.k==='miss'||s.k==='wait')?'H':'X';return 'X'};
+  const segs=[],tot={alt:0,gap:0,both:0};
+  for(let i=0;i<b.length-1;i++){const a=b[i],e=b[i+1];if(e-a<1e-6)continue;const m=(a+e)/2;if(m>T_AUTO&&m<T_TELE)continue;
+    const sa=at(R[0],m),sb=at(R[1],m);const k=sa!==sb?'alt':(sa==='H'?'both':'gap');tot[k]+=e-a;
+    const last=segs[segs.length-1];if(last&&last.k===k&&Math.abs(last.e-a)<1e-6)last.e=e;else segs.push({k,s:a,e})}
+  const active=T_END-(T_TELE-T_AUTO);return{segs,tot,pct:Math.round(100*tot.alt/active)};
+}
+function SCN_MIX(sc,i){return sc.mix[i]}
+function waitDur(a,b){let d=b-a;const o=Math.max(0,Math.min(b,T_TELE)-Math.max(a,T_AUTO));return d-o}
+
+/* ---------- state ---------- */
+const $=id=>document.getElementById(id);
+let P=load();
+function load(){try{const s=JSON.parse(localStorage.getItem('hivePlanner')||'null');if(s&&s.collectA){if(s.parkOn===false&&s.parkEndA===undefined){s.parkEndA=false;s.parkEndB=false}delete s.parkOn;if(!s.capV){s.flowerCap=6;s.capV=1}if(!s.oppV){s.optOpp=true;s.oppV=1}return{...structuredClone(DEFAULTS),...s}}}catch(e){}return structuredClone(DEFAULTS)}
+function save(){try{localStorage.setItem('hivePlanner',JSON.stringify(P))}catch(e){}}
+const NUMS=['phK','phW0','lnA','lnB','flowerCap','flowerTimeA','flowerTimeB','collectSimpleA','collectSimpleB','maxPA','maxPB','maxNA','maxNB','earlyWin','cdriveA','cdriveB','oppSpeed','failCA','failCB','missA','missB','launchA','launchB','driveA','driveB','parkA','parkB','threshold','wP','wN'];
+function bindInputs(){
+  for(const k of NUMS){$(k).value=P[k];$(k).oninput=()=>{const v=parseFloat($(k).value);if(isFinite(v)&&v>=0){P[k]=k.startsWith('failC')?Math.min(v,75):k.startsWith('miss')?Math.min(v,90):v;run()}}}
+  for(const k of ['autoParkA','autoParkB','parkEndA','parkEndB']){$(k).checked=P[k]!==false&&!!P[k];$(k).onchange=()=>{P[k]=$(k).checked;run()}}
+  $('oppStrat').innerHTML=SCENARIOS.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');$('oppStrat').value=P.oppStrat;$('oppStrat').onchange=()=>{P.oppStrat=$('oppStrat').value;run()};
+  for(const k of ['endPlanA','endPlanB','oppEndPlan']){$(k).value=P[k]||'hive';$(k).onchange=()=>{P[k]=$(k).value;run()}}
+  for(const k of ['capCA','capCB','capLA','capLB','styleA','styleB']){$(k).value=P[k]||DEFAULTS[k];$(k).onchange=()=>{P[k]=$(k).value;syncCaps();run()}}
+  for(const k of ['topA','topB','flowerA','flowerB','oppFlowerA','oppFlowerB']){$(k).checked=!!P[k];$(k).onchange=()=>{P[k]=$(k).checked;syncFlower();run()}}
+  syncFlower();
+  syncCaps();
+  $('early').value=P.early;$('early').onchange=()=>{P.early=$('early').value;run()};
+  $('model').value=P.model;$('model').onchange=()=>{P.model=$('model').value;run()};
+  buildTable();
+}
+function syncFlower(){for(const id of ['A','B'])$('flowerTime'+id).disabled=!P['flower'+id]}
+function syncCaps(){
+  for(const id of ['A','B']){
+    const c=P['capC'+id]||'both',sel=$('capL'+id);
+    const ok={both:['demand','fifo','pollen','nectar'],pollen:['pollen'],nectar:['nectar']}[c];
+    for(const o of sel.options)o.disabled=!ok.includes(o.value);
+    if(!ok.includes(sel.value)){sel.value=ok[0];P['capL'+id]=ok[0]}
+    const l=P['capL'+id],canP=c!=='nectar'&&l!=='nectar',canN=c!=='pollen'&&l!=='pollen';
+    for(const [k,on] of [['maxP'+id,canP],['maxN'+id,canN]]){const el=$(k);el.disabled=!on;el.value=on?P[k]:0}
+  }
+}
+function buildTable(){
+  let h='<thead><tr><th class="row">Round</th>';
+  for(let i=0;i<P.rounds;i++)h+=`<th>${i+1}</th>`;h+='</tr></thead><tbody>';
+  for(const id of ['A','B']){h+=`<tr><th class="row" scope="row">Robot ${id}</th>`;
+    for(let i=0;i<P.rounds;i++)h+=`<td><input type="number" min="1" max="90" step="0.5" id="c${id}${i}" aria-label="Robot ${id} round ${i+1} collect time" value="${P['collect'+id][i]}"></td>`;h+='</tr>'}
+  $('ctable').innerHTML=h+'</tbody>';
+  for(const id of ['A','B'])for(let i=0;i<P.rounds;i++){const el=$(`c${id}${i}`);el.oninput=()=>{const v=parseFloat(el.value);if(isFinite(v)&&v>0){P['collect'+id][i]=v;run()}}}
+}
+$('fillBtn').onclick=()=>{for(const id of ['A','B']){const v=parseFloat($('fill'+id).value);if(isFinite(v)&&v>0){P['collect'+id]=Array(P.rounds).fill(v)}}buildTable();run()};
+$('reset').onclick=()=>{P=structuredClone(DEFAULTS);P.optErrors=false;P.optOpp=true;P.optSimple=true;bindInputs();run()};
+
+/* ---------- rendering ---------- */
+const X0=86,X1=990,xs=t=>X0+(Math.min(t,AXIS_END)/AXIS_END)*(X1-X0);
+const fmt=(v,d=1)=>Number(v).toFixed(d);
+const ballTxt=c=>{const n=c.filter(b=>b==='N').length,p=c.length-n;return [p?`${p} POLLEN`:'',n?`${n} NECTAR`:''].filter(Boolean).join(' + ')};
+function clipTrans(s,e){if(e<=T_AUTO||s>=T_TELE)return[[s,e]];const out=[];if(s<T_AUTO)out.push([s,T_AUTO]);if(e>T_TELE)out.push([T_TELE,e]);return out}
+function gantt(res,idx,opp,strat,lab){
+  const tr=x=>{x=esc(String(x).replace(/^(Red|Blue) (?=Robot )/,''));return x.length>11?x.slice(0,10)+'…':x};
+  const rows=[{y:34,label:lab?tr(lab.A):'Robot A',r:res.R[0]},{y:70,label:lab?tr(lab.B):'Robot B',r:res.R[1]},{y:130,label:lab?tr(lab.hive):'HIVE'}];if(opp)rows.push({y:strat?194:162,label:lab?tr(lab.opp):'Opp HIVE'});
+  const H=22,W=1000,HT=(strat?226:194)+(opp?32:0);let g='';
+  if(strat){const sy=162;g+=`<text x="${X0-10}" y="${sy+H/2+4}" text-anchor="end" font-size="11.5" font-weight="600" fill="var(--muted)">Strategy</text>`;
+    g+=`<line x1="${X0}" y1="${sy+H/2}" x2="${xs(AXIS_END)}" y2="${sy+H/2}" stroke="var(--rule)" stroke-dasharray="2 4"/>`;
+    for(const m of strat){const cx=xs(m.t);g+=`<g data-tip="Tip ${m.n} load: ${m.load}<br>Closest strategy: ${m.letter} · ${m.name}${m.note?'<br>'+m.note:''}"><rect x="${cx-11}" y="${sy}" width="22" height="${H}" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1"/><text x="${cx}" y="${sy+H/2+4.5}" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--accent)" font-family="var(--f-display)">${m.letter}</text></g>`}}
+  const pid='hatch'+idx;
+  g+=`<defs><pattern id="${pid}" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="none"/><line x1="0" y1="0" x2="0" y2="5" stroke="var(--wait)" stroke-width="2"/></pattern></defs>`;
+  g+=`<rect x="${xs(0)}" y="22" width="${xs(T_AUTO)-xs(0)}" height="${HT-56}" fill="var(--auto-band)"/>`;
+  g+=`<rect x="${xs(T_AUTO)}" y="22" width="${xs(T_TELE)-xs(T_AUTO)}" height="${HT-56}" fill="var(--trans-band)"/>`;
+  g+=`<rect x="${xs(T_END)}" y="22" width="${xs(AXIS_END)-xs(T_END)}" height="${HT-56}" fill="var(--trans-band)"/>`;
+  g+=`<text x="${xs(15)}" y="15" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)" letter-spacing=".06em">AUTO</text>`;
+  g+=`<text x="${xs(98)}" y="15" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)" letter-spacing=".06em">TELEOP</text>`;
+  g+=`<text x="${xs(162)}" y="15" text-anchor="middle" font-size="11" fill="var(--faint)">after buzzer</text>`;
+  for(let t=0;t<=160;t+=10){const x=xs(t);g+=`<line x1="${x}" y1="22" x2="${x}" y2="${HT-34}" stroke="var(--grid)"/>`;g+=`<text x="${x}" y="${HT-18}" text-anchor="middle" font-size="11.5" fill="var(--faint)" font-family="var(--f-mono)">${t}</text>`}
+  g+=`<line x1="${xs(T_END)}" y1="22" x2="${xs(T_END)}" y2="${HT-34}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  g+=`<text x="${xs(T_END)+3}" y="${HT-38}" font-size="11" fill="var(--muted)">158 s</text>`;
+  g+=`<text x="${(X0+X1)/2}" y="${HT-2}" text-anchor="middle" font-size="11.5" fill="var(--muted)">Match time (s)</text>`;
+  for(const row of rows)g+=`<text x="${X0-10}" y="${row.y+H/2+4}" text-anchor="end" font-size="13" font-weight="600" fill="var(--ink)">${row.label}</text>`;
+  const rect=(s,e,y,fill,tip,extra='')=>{const x=xs(s),w=Math.max(1.2,xs(e)-xs(s));return `<rect x="${x}" y="${y}" width="${w}" height="${H}" rx="2" fill="${fill}" data-tip="${tip}" ${extra}/>`};
+  for(const row of rows.slice(0,2)){
+    const r=row.r,segs=r.segs;
+    // merge consecutive launches
+    const merged=[];for(const s of segs){const last=merged[merged.length-1];if(s.k==='launch'&&last&&last.k==='launch'&&last.place===s.place&&(Math.abs(last.e-s.s)<1e-6||(Math.abs(last.s-s.s)<1e-6&&Math.abs(last.e-s.e)<1e-6))){last.e=s.e;last.balls.push(s.ball)}else merged.push(s.k==='launch'?{...s,balls:[s.ball]}:{...s})}
+    {let cur=0;const gaps=[];for(const s of [...merged].sort((x,y)=>x.s-y.s)){if(s.s>cur+0.05)gaps.push([cur,s.s,s]);cur=Math.max(cur,s.e)}if(cur<T_END-0.05)gaps.push([cur,T_END,null]);
+      const why=n=>idx==='an'?(n?'Nothing is logged for this robot between these events':'Nothing is logged for this robot after its last event')
+        :!n?'Done for the match: another collect trip and launch would not finish before the buzzer'
+        :n.k==='park'&&n.auto?`Waiting to park after AUTO: nothing else fits before it leaves to park at ${fmt(n.s)} s${r.fill?' (no POLLEN it can reach in time)':''}`
+        :n.k==='park'?`Done for the match: another collect trip and launch would not finish before it leaves to park at ${fmt(n.s)} s`
+        :n.k==='collect'&&n.idleAuto?'Waiting for POLLEN from the tip to reach the floor, then collects before parking'
+        :n.k==='collect'?'Waiting for balls to become available to collect'
+        :n.k==='launch'||n.k==='miss'?'Waiting for the HIVE to finish swinging':'Idle';
+      for(const [s0,e0,n] of gaps)for(const [a,b] of clipTrans(s0,e0))if(b-a>0.05)g+=rect(a,b,row.y,`url(#${pid})`,`Robot ${r.id} · waiting<br>${fmt(a)}–${fmt(b)} s (${fmt(b-a)} s)<br>${why(n)}`,'stroke="var(--wait)" stroke-width="1"')}
+    for(const s of merged){
+      if(s.k==='drive')g+=rect(s.s,s.e,row.y,'var(--collect)',`Robot ${r.id} · AUTO: drive to launch spot<br>${fmt(s.s)}–${fmt(s.e)} s · 4 POLLEN preloaded`,'opacity=".55"');
+      else if(s.k==='collect'){for(const [a,b] of clipTrans(s.s,s.e))g+=rect(a,b,row.y,'var(--collect)',`Robot ${r.id} · ${s.top?'topping up while the HIVE swings':'collect round '+s.round}<br>${fmt(s.s)}–${fmt(s.e)} s${s.split?' (pauses for transition)':''}<br>Brings back ${ballTxt(s.comp)}${s.lost&&!s.why?` (found ${s.comp.length} of 4)`:''}${s.why==='short'?'<br>Returned early: the cell was short':s.why==='time'?'<br>Returned early to beat the buzzer':''}`)}
+      else if(s.k==='launch')g+=rect(s.s,s.e,row.y,'var(--launch)',`Robot ${r.id} · ${s.place?`places ${s.balls.length} ball${s.balls.length>1?'s':''} in ${s.place.startsWith('other')?'the':'its'} ${s.place}`:`launch ${s.balls.length} ball${s.balls.length>1?'s':''}`}<br>${fmt(s.s)}–${fmt(s.e)} s · ${ballTxt(s.balls)}`);
+      else if(s.k==='miss')g+=rect(s.s,s.e,row.y,'var(--miss)',`Robot ${r.id} · missed launch<br>${fmt(s.s)}–${fmt(s.e)} s · ${ballTxt([s.ball])} lands on the floor`);
+      else if(s.k==='wait'){for(const [a,b] of clipTrans(s.s,s.e))if(b-a>0.05)g+=rect(a,b,row.y,`url(#${pid})`,`Robot ${r.id} · waiting<br>${fmt(a)}–${fmt(b)} s (${fmt(b-a)} s)<br>${s.nothing?(s.auto?'Nothing left to collect in AUTO: robots may only take balls from known places (your GARDEN, or your FLOWERS if allowed), not loose balls on the floor':'No balls it can collect are available yet, so it waits until some are'):'Waiting for the HIVE to finish swinging before it can launch'}`,'stroke="var(--wait)" stroke-width="1"')}
+      else if(s.k==='park')g+=rect(s.s,s.e,row.y,'var(--park)',`Robot ${r.id} · drive to PARK${s.auto?' (end of AUTO, 5 points if in the LOADING ZONE by 30 s)':' (end of match)'}<br>${fmt(s.s)}–${fmt(s.e)} s`);
+    }
+  }
+  const ay=104,cov=res.cov;
+  g+=`<text x="${X0-10}" y="${ay+12}" text-anchor="end" font-size="11.5" font-weight="600" fill="var(--muted)">Actions</text>`;
+  const covName={alt:'Alternating',gap:'Both collecting: nobody at the HIVE',both:'Both robots at the HIVE'};
+  for(const c of cov.segs){const x=xs(c.s),w=Math.max(1,xs(c.e)-xs(c.s));g+=`<rect x="${x}" y="${ay}" width="${w}" height="16" fill="var(--${c.k})" data-tip="${covName[c.k]}<br>${fmt(c.s)}–${fmt(c.e)} s (${fmt(c.e-c.s)} s)"/>`}
+  const hy=rows[2].y;
+  g+=`<line x1="${X0}" y1="${hy+H/2}" x2="${xs(AXIS_END)}" y2="${hy+H/2}" stroke="var(--rule)" stroke-dasharray="2 4"/>`;
+  {let prev=0,up=1;const tl=[...res.hive.tips,{t:T_END,end:T_END}];for(const t of tl){const a=xs(prev),b=xs(t.t);if(b-a>26)g+=`<text x="${(a+b)/2}" y="${hy+H/2+4}" text-anchor="middle" font-size="11" fill="var(--faint)" font-family="var(--f-mono)" pointer-events="none">H${up}</text>`;prev=t.end;up=3-up}}
+  for(const t of res.hive.tips){
+    g+=rect(t.t,t.end,hy,'var(--swing)',`Tip ${t.n}${t.auto?' (AUTO)':''}: Hive ${t.cellNo} tips · by Robot ${t.by}<br>Hive ${3-t.cellNo} faces up next<br>Starts ${fmt(t.t)} s · swing ${fmt(t.swing,2)} s<br>${ballTxt([...Array(t.nP).fill('P'),...Array(t.nN).fill('N')])} = ${fmt(t.W,3)} lb`);
+    const cx=(xs(t.t)+xs(t.end))/2;if(xs(t.end)-xs(t.t)>11)g+=`<text x="${cx}" y="${hy+H/2+4.5}" text-anchor="middle" font-size="12" font-weight="600" fill="#fff" pointer-events="none" font-family="var(--f-mono)">${t.n}</text>`;
+  }
+  if(opp){const oy=rows[3].y;
+  g+=`<line x1="${X0}" y1="${oy+H/2}" x2="${xs(AXIS_END)}" y2="${oy+H/2}" stroke="var(--rule)" stroke-dasharray="2 4"/>`;
+  for(const t of opp.hive.tips){g+=rect(t.t,t.end,oy,'var(--swing)',`Opponent tip ${t.n}<br>Starts ${fmt(t.t)} s · swing ${fmt(t.swing,2)} s<br>${t.nP} POLLEN + ${t.nN} NECTAR`,'opacity=".5"')}}
+  g+=`<line class="xhair" x1="0" y1="22" x2="0" y2="${HT-34}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden" pointer-events="none"/>`;
+  return `<svg viewBox="0 0 ${W} ${HT}" role="img" aria-label="Timeline for ${res.sc.name}: ${res.tips} HIVE tips">${g}</svg>`;
+}
+const INV=[];
+function invAt(snaps,t){let lo=0,hi=snaps.length-1;while(lo<hi){const m=(lo+hi+1)>>1;if(snaps[m].t<=t+1e-9)lo=m;else hi=m-1}return snaps[lo]}
+const pn=(p,n)=>`${p} P${n?` · ${n} N`:''}`;
+function invHTML(sn,t,nm){const s=sn.st,U=nm&&nm.us||'Your',O=nm&&nm.opp||'Opp',u=nm&&nm.us||'your',o=nm&&nm.opp||'opp',no=nm&&nm.noOpp;
+  if(no)return `<div class="inv"><b>Ball count at ${fmt(t)} s</b>
+  <span>${U} HIVE</span><span>${pn(s.cellP.us,s.cellN.us)} in Hive ${s.up.us} (facing up)</span>
+  <span>Floor</span><span>${s.floorP} P · ${s.floorN.us} ${u} N</span>
+  <span>${U} robots</span><span>${pn(s.robP.us,s.robN.us)}</span>
+  <span>FLOWERS</span><span>${s.fq?s.fq.us.map(x=>x.length).join(' + '):s.flower.us} yours · ${s.fq?s.fq.opp.map(x=>x.length).join(' + '):s.flower.opp} theirs</span>
+  <span>GARDENS</span><span>${s.garden.us+(s.gN?s.gN.us:0)} yours · ${s.garden.opp+(s.gN?s.gN.opp:0)} theirs</span>
+  <span>Staged NECTAR</span><span>${s.staged.us}</span></div>`;
+  return `<div class="inv"><b>Ball count at ${fmt(t)} s</b>
+  <span>${U} HIVE</span><span>${pn(s.cellP.us,s.cellN.us)} in Hive ${s.up.us} (facing up)</span>
+  <span>Floor</span><span>${s.floorP} P · ${s.floorN.us} ${u} N · ${s.floorN.opp} ${o} N</span>
+  <span>${U} robots</span><span>${pn(s.robP.us,s.robN.us)}</span>
+  <span>${O} holds</span><span>${pn(s.cellP.opp+s.robP.opp,s.cellN.opp+s.robN.opp)} (HIVE + robots, off the floor)</span>
+  <span>FLOWERS</span><span>${s.fq?s.fq.us.map(x=>x.length).join(' + '):s.flower.us} yours · ${s.fq?s.fq.opp.map(x=>x.length).join(' + '):s.flower.opp} theirs</span>
+  <span>GARDENS</span><span>${s.garden.us+(s.gN?s.gN.us:0)} yours · ${s.garden.opp+(s.gN?s.gN.opp:0)} theirs</span>
+  <span>Staged NECTAR</span><span>${s.staged.us} yours · ${s.staged.opp} theirs</span></div>`}
+function invTable(snaps,nm){const U=nm&&nm.us||'Your',O=nm&&nm.opp||'Opp',u=nm&&nm.us||'your',o=nm&&nm.opp||'opp';
+  if(nm&&nm.noOpp){const rows=snaps.filter(x=>x.side!=='opp').map(x=>{const s=x.st;return `<tr><td>${fmt(x.t)}</td><td class="ev">${x.label.replace(/^You · /,'')}</td><td>${s.cellP.us}·${s.cellN.us}</td><td>${s.floorP}</td><td>${s.floorN.us}</td><td>${s.robP.us}·${s.robN.us}</td><td>${s.flower.us+s.flower.opp}</td><td>${s.garden.us}·${s.garden.opp}</td><td>${s.staged.us}</td></tr>`}).join('');
+    return `<div class="scroll invwrap"><table class="log invlog" style="min-width:820px"><thead><tr><th>Time (s)</th><th>Event</th><th>${U} HIVE P·N</th><th>Floor P</th><th>Floor ${u} N</th><th>${U} robots P·N</th><th>FLOWERS P</th><th>GARDENS yours·theirs</th><th>Staged N</th></tr></thead><tbody>${rows}</tbody></table></div>`}
+  const rows=snaps.map(x=>{const s=x.st;return `<tr class="${x.side}"><td>${fmt(x.t)}</td><td class="ev">${x.label}</td><td>${s.cellP.us}·${s.cellN.us}</td><td>${s.cellP.opp}·${s.cellN.opp}</td><td>${s.floorP}</td><td>${s.floorN.us}</td><td>${s.floorN.opp}</td><td>${s.robP.us}·${s.robN.us}</td><td>${s.robP.opp}·${s.robN.opp}</td><td>${s.flower.us+s.flower.opp}</td><td>${s.garden.us}·${s.garden.opp}</td><td>${s.staged.us}·${s.staged.opp}</td></tr>`}).join('');
+  return `<div class="scroll invwrap"><table class="log invlog"><thead><tr><th>Time (s)</th><th>Event</th><th>${U} HIVE P·N</th><th>${O} HIVE P·N</th><th>Floor P</th><th>Floor ${u} N</th><th>Floor ${o} N</th><th>${U} robots P·N</th><th>${O} robots P·N</th><th>FLOWERS P</th><th>GARDENS yours·theirs</th><th>Staged N yours·theirs</th></tr></thead><tbody>${rows}</tbody></table></div>`}
+const LETTER={};
+const MIX={s1:[7,1],s2:[6,2],s3:[8,0],s4:[9,0],s5:[5,3],s6:[4,4]};
+function matchStrategy(t){
+  let nN=t.nN,nP=t.nP,note='';if(t.n===1&&nN>0){const k=Math.min(3,nN);nN-=k;note=`Not counting the ${k} NECTAR that start in the cell`}
+  const tot=nP+nN,f=tot?nN/tot:0;let best=null,bd=1e9;
+  for(const sc of SCENARIOS){const [p,n]=MIX[sc.id],fs=n/(p+n),d=Math.abs(f-fs)*10+(n===0&&nN===0?Math.abs(tot-(p+n))*0.1:0);if(d<bd-1e-9){bd=d;best=sc}}
+  return{n:t.n,t:t.t,letter:LETTER[best.id]||'?',name:best.name,load:`${nP} POLLEN + ${nN} NECTAR`,note,id:best.id};
+}
+function effParams(P){const E={...P};
+  if(!P.optErrors){E.failCA=E.failCB=0;E.missA=E.missB=0;E.early='off'}
+  if(P.optSimple){E.collectA=Array(P.rounds).fill(+P.collectSimpleA||11);E.collectB=Array(P.rounds).fill(+P.collectSimpleB||13)}
+  return E}
+function applyOptions(){
+  const sec=id=>document.querySelector(`[aria-labelledby="${id}"]`);
+  sec('err-h').hidden=!P.optErrors;sec('opp-h').hidden=!P.optOpp;
+  $('roundCollect').hidden=!!P.optSimple;$('simpleCollect').hidden=!P.optSimple;
+  $('colTitle').textContent=P.optSimple?'Collect time (s)':'Collect time per round (s)';
+  $('optErrors').checked=!!P.optErrors;$('optOpp').checked=!!P.optOpp;$('optSimple').checked=!!P.optSimple;$('optAutoNectar').checked=P.optAutoNectar!==false;$('optOppFlowers').checked=P.optOppFlowers!==false;$('prefSource').value=P.prefSource||'garden';
+  const off=[!P.optErrors&&'errors off',!P.optOpp&&'opponent hidden',P.optSimple&&'one collect time per robot',P.optAutoNectar===false&&'no NECTAR in AUTO',P.prefSource==='flowers'&&'prefer FLOWERS',P.optOppFlowers===false&&'no opponent FLOWERS'].filter(Boolean);
+  $('optState').textContent=off.length?off.join(' · '):'';
+}
+function hiveSVG(sn,t,tips,nm,R){
+  const s=sn.st,W=266,cx=133,py=100,L=58,A=40,FY=204,CUP=27;
+  const usC=nm&&nm.us?nm.us.toLowerCase():'red',opC=usC==='red'?'blue':'red',NC={red:'#e5484d',blue:'#4a90e2'},PC='#f2c230';
+  const tp=(tips||[]).find(x=>t>=x.t&&t<x.end);let th,swingTxt='';
+  if(tp){const p=Math.min(1,Math.max(0,(t-tp.t)/(tp.end-tp.t))),e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2,from=tp.cellNo===1?A:-A;th=from-2*from*e;swingTxt=`Swinging · Hive ${tp.cellNo} tipping`}
+  else th=s.up.us===1?A:-A;
+  const a=th*Math.PI/180,ca=Math.cos(a),sa=Math.sin(a),nx=sa,ny=-ca;
+  const mk=(n,sg)=>{const ux=sg*ca,uy=sg*sa,x=cx+L*ux,y=py+L*uy;return{n,x,y,ux,uy,phi:Math.atan2(ux,-uy)*180/Math.PI}};
+  const ends=[mk(1,-1),mk(2,1)];
+  const full=tp?tp.cellNo:s.up.us,target=tp?3-tp.cellNo:s.up.us;
+  const ink='var(--bg)';let g='';
+  g+=`<path d="M${cx-14} ${FY} L${cx} ${py} L${cx+14} ${FY}" fill="none" stroke="${ink}" stroke-opacity=".55" stroke-width="2"/>`;
+  g+=`<line x1="${ends[0].x.toFixed(1)}" y1="${ends[0].y.toFixed(1)}" x2="${ends[1].x.toFixed(1)}" y2="${ends[1].y.toFixed(1)}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>`;
+  g+=`<circle cx="${cx}" cy="${py}" r="4" fill="${ink}"/>`;
+  const ball=(x,y,b,r)=>`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${b==='P'?PC:NC[b==='N'?usC:opC]}" stroke="rgba(0,0,0,.35)" stroke-width=".6"/>`;
+  const cupD='M-17 -13 L-17 8 Q-17 14 -11 14 L11 14 Q17 14 17 8 L17 -13';
+  for(const e of ends){
+    const lab=`Hive ${e.n}${e.n===target?' · target':''}`;let inner='';
+    if(e.n===full){const bs=[...Array(s.cellN.us).fill('N'),...Array(s.cellP.us).fill('P')];
+      bs.slice(0,12).forEach((b,i)=>{const col=i%4,row=Math.floor(i/4);inner+=ball(-10.5+col*7,9-row*7,b,b==='N'?3.9:3.2)});
+      if(bs.length>12)inner+=`<text x="0" y="-16" text-anchor="middle" font-size="9" fill="${ink}">+${bs.length-12}</text>`}
+    g+=`<g transform="translate(${e.x.toFixed(1)} ${e.y.toFixed(1)}) rotate(${e.phi.toFixed(1)}) translate(0 -14)"><path d="${cupD}" fill="var(--ink)" stroke="none"/><path d="${cupD}" fill="rgba(127,127,127,.22)" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/>${inner}</g>`;
+    const mx=e.x+e.ux*CUP/2,my=e.y+e.uy*CUP/2,lx=mx+nx*44,ly=my+ny*44+4;
+    const wt=e.n===full?s.cellP.us*P.wP+s.cellN.us*P.wN:0;
+    g+=`<text x="${lx.toFixed(1)}" y="${(ly-5).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="${ink}">${lab}</text><text x="${lx.toFixed(1)}" y="${(ly+6).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="${ink}" fill-opacity=".85" font-family="var(--f-mono)">${wt.toFixed(3)} lb${wt>=P.threshold-1e-9&&e.n===full?' ✓':''}</text>`;
+  }
+  /* robots */
+  const stateOf=r=>{for(const sg of r.segs)if(sg.k==='park'&&t>=sg.s&&(sg.auto?t<T_TELE:true))return 'park';for(const sg of r.segs)if(sg.s<=t&&t<sg.e)return sg.k==='collect'?'out':sg.k==='launch'||sg.k==='miss'?'launch':sg.k==='wait'?'wait':sg.k==='drive'?'drive':sg.k==='park'?'park':'idle';return 'idle'};
+  const tx=ends[target-1].x,RW=40,RH=28,ry=FY-RH-1;let robTxt=[];
+  const isL=x=>x.k==='launch'||x.k==='miss'||(x.k==='wait'&&!x.nothing);
+  const runStart=r=>{const L=isL;let sg=r.segs.find(x=>L(x)&&x.s<=t&&t<x.e);if(!sg)return Infinity;let s0=sg.s,more=true;
+    while(more){more=false;for(const x of r.segs)if(L(x)&&x.s<s0-1e-6&&x.e>=s0-1e-6){s0=x.s;more=true}}return s0};
+  const lau=(R||[]).filter(r=>stateOf(r)!=='park'&&r.segs.some(x=>isL(x)&&x.s<=t&&t<x.e)).sort((a,b)=>runStart(a)-runStart(b)||a.i-b.i),mid=(R||[]).filter(r=>!lau.includes(r)),OB=36;
+  (R||[]).forEach((r,i)=>{const st0=stateOf(r),st=t>=T_AUTO&&t<T_TELE&&st0!=='park'?'pause':st0,hold=(s.rob&&s.rob['us'+r.id])||{P:0,N:0},li=lau.indexOf(r),mi=mid.indexOf(r);
+    const x0=li>=0?(target===2?W-OB-RW-li*(RW+4):OB+li*(RW+4)):(mid.length===1?W/2-RW/2:W/2-RW-2+mi*(RW+4));
+    const col=st==='out'?'var(--collect)':st==='launch'?'var(--swing)':st==='park'?'#e5484d':'color-mix(in srgb,var(--bg) 35%,transparent)',sw=st==='out'||st==='launch'||st==='park'?2.5:1.2;
+    const name=(nm&&nm['us'+r.id])||('Robot '+r.id),short=name.length>8?name.slice(0,7)+'…':name;
+    g+=`<rect x="${x0}" y="${ry}" width="${RW}" height="${RH}" rx="4" fill="var(--ink)" stroke="${col}" stroke-width="${sw}"/>`;
+    g+=`<text x="${x0+RW/2}" y="${ry+10}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${ink}">${esc(short)}</text>`;
+    const bs=[...Array(hold.N).fill('N'),...Array(hold.P).fill('P')].slice(0,4);
+    bs.forEach((b,j)=>{g+=ball(x0+7+j*8.7,ry+20,b,b==='N'?3.6:3)});
+    robTxt.push(`${esc(name)}: ${{out:'out collecting',launch:'launching',wait:'waiting for the HIVE',drive:'driving to the HIVE',park:'parking or parked',idle:'idle',pause:'paused for the transition'}[st]}`)});
+  {const SP=6.6,CAPD=Math.max(6,Math.round(+P.flowerCap||6)),fH=CAPD*SP,gap=6;
+    const stack=(x,fq,label,lx,inward)=>{fq.forEach((f,q)=>{for(let k=0;k<CAPD;k++){const y=FY-5-q*(fH+gap)-k*SP,b=f[k];g+=b?ball(x,y,b==='P'?'P':b==='Nus'?'N':(nm&&nm.noOpp?'N':'O'),b==='P'?3:3.4):`<circle cx="${x}" cy="${y.toFixed(1)}" r="2.8" fill="none" stroke="${ink}" stroke-opacity=".35" stroke-width=".8"/>`}
+        const cy=FY-5-q*(fH+gap)-(CAPD-1)/2*SP;g+=`<text x="${x+inward*7}" y="${(cy+3).toFixed(1)}" text-anchor="${inward>0?'start':'end'}" font-size="8" fill="${ink}" fill-opacity=".85">${f.length}</text>`});
+      const my=FY-5-(fH+gap/2);g+=`<text transform="translate(${lx} ${my.toFixed(1)}) rotate(-90)" text-anchor="middle" font-size="8" font-weight="700" fill="${ink}">${label}</text>`};
+    const F=s.fq||{us:[['P','P','P','P'],['P','P','P','P']],opp:[['P','P','P','P'],['P','P','P','P']]};stack(17,F.us,'Your Flowers',9,1);stack(W-17,F.opp,'Opp Flowers',W-5,-1);
+    const G=s.garden||{us:4,opp:4},gb=-2;
+    const gstack=(x,n,label,inward,lx,anchor,nN)=>{nN=nN||0;n+=nN;for(let k=0;k<4;k++){const y=gb-k*7.2;g+=k<n?ball(x,y,k<n-nN?'P':'N',k<n-nN?3.2:3.7):`<circle cx="${x}" cy="${y.toFixed(1)}" r="3" fill="none" stroke="${ink}" stroke-opacity=".35" stroke-width=".8"/>`}
+      g+=`<text x="${x+inward*7}" y="${(gb-1.5*7.2+3).toFixed(1)}" text-anchor="${inward>0?'start':'end'}" font-size="8" fill="${ink}" fill-opacity=".85">${n}</text>`;
+      g+=`<text transform="translate(${lx} ${(gb-1.5*7.2).toFixed(1)}) rotate(-90)" text-anchor="middle" font-size="8" font-weight="700" fill="${ink}">${label}</text>`};
+    const GN=s.gN||{us:0,opp:0};gstack(17,G.us,'Garden',1,9,'',GN.us);gstack(W-17,G.opp,'Garden',-1,W-5,'',GN.opp)}
+  g+=`<line x1="6" y1="${FY}" x2="${W-6}" y2="${FY}" stroke="${ink}" stroke-opacity=".6" stroke-width="1.5"/>`;
+  const fl=[...Array(s.floorN.us).fill('N'),...(nm&&nm.noOpp?[]:Array(s.floorN.opp).fill('O')),...Array(s.floorP).fill('P')];
+  const slots=[];for(let row=0;row<3;row++)for(let x=10;x<=W-10;x+=8.6)slots.push([x,FY+6+row*8.2]);
+  fl.slice(0,slots.length).forEach((b,i)=>{const [x,y]=slots[i];g+=ball(x,y,b,b==='P'?3.3:3.9)});
+  if(fl.length>slots.length)g+=`<text x="${W-8}" y="${FY+34}" text-anchor="end" font-size="9" fill="${ink}">+${fl.length-slots.length} more</text>`;
+  const rows=Math.max(1,Math.ceil(Math.min(fl.length,slots.length)/30)),HH=FY+6+rows*8.2+4;
+  const leg=`<span class="hl"><i style="background:${PC}"></i>POLLEN</span><span class="hl"><i style="background:${NC[usC]}"></i>${nm&&nm.us?nm.us:'Your'} NECTAR</span>${nm&&nm.noOpp?'':`<span class="hl"><i style="background:${NC[opC]}"></i>${nm&&nm.opp?nm.opp:'Opp'} NECTAR</span>`}<span class="hl"><i class="sq" style="border-color:var(--collect)"></i>Out collecting</span><span class="hl"><i class="sq" style="border-color:var(--swing)"></i>Launching</span><span class="hl"><i class="sq" style="border-color:#e5484d"></i>Parking</span>`;
+  return `<div class="hivefig"><svg viewBox="0 -30 ${W} ${(HH+30).toFixed(0)}" width="${W}" height="${(HH+30).toFixed(0)}" role="img" aria-label="Side view of your HIVE. Hive ${full} holds ${s.cellP.us} POLLEN and ${s.cellN.us} NECTAR. ${robTxt.join('. ')}. ${fl.length} balls on the floor.">${g}</svg><div class="hleg">${leg}<span class="hl">Floor: ${fl.length}</span>${nm&&nm.noOpp?'':`<span class="hl">${nm&&nm.opp?nm.opp:'Opponent'} holds ${s.cellP.opp+s.robP.opp+s.cellN.opp+s.robN.opp} off the floor</span>`}${swingTxt?`<span class="hl"><b>${swingTxt}</b></span>`:''}</div></div>`;
+}
+function bindChart(ch,snaps,nm,tips,R){
+    const tip=ch.querySelector('.tip');
+    const svg=ch.querySelector('svg'),xh=svg.querySelector('.xhair');
+    ch.addEventListener('pointermove',e=>{const bb=svg.getBoundingClientRect();const vx=(e.clientX-bb.left)/bb.width*1000;const tm=(vx-X0)/(X1-X0)*AXIS_END;
+      if(tm<0||tm>AXIS_END){tip.hidden=true;xh.setAttribute('visibility','hidden');return}
+      xh.setAttribute('x1',vx);xh.setAttribute('x2',vx);xh.setAttribute('visibility','visible');
+      const seg=e.target.closest('[data-tip]');
+      tip.innerHTML=(seg?`<div>${seg.getAttribute('data-tip')}</div><hr>`:'')+(()=>{const sn=invAt(snaps,tm);return invHTML(sn,tm,nm)+hiveSVG(sn,tm,tips,nm,R)})();tip.hidden=false;
+      const tw=tip.offsetWidth,th=tip.offsetHeight,vw=window.innerWidth,vh=window.innerHeight;
+      let x=e.clientX+14,y=e.clientY-th/2;if(x+tw>vw-8)x=e.clientX-tw-14;x=Math.max(8,x);y=Math.max(8,Math.min(y,vh-th-8));
+      tip.style.left=x+'px';tip.style.top=y+'px'});
+    ch.addEventListener('pointerleave',()=>{tip.hidden=true;xh.setAttribute('visibility','hidden')});
+  }
+function chips(res){return `<div class="chips"><span class="chip ${res.p1?'on':'off'}">Pollinator 1</span><span class="chip ${res.p2?'on':'off'}">Pollinator 2</span><span class="chip ${res.swarm?'on':'off'}">Swarm</span></div>`}
+function run(){
+  save();setSW(P);
+  {const f=x=>String(+(+x).toFixed(4)),o=$('model').options;o[0].textContent=`Physics curve: ${f(SW.k)} / √(W − ${f(SW.w0)})`;o[1].textContent=`Straight line: ${f(SW.a)} − ${f(SW.b)} × W`}
+  applyOptions();const E=effParams(P);
+  const k=(E.oppSpeed||100)/100,OP={...E,launchA:E.launchA*k,launchB:E.launchB*k,collectA:E.collectA.map(x=>x*k),collectB:E.collectB.map(x=>x*k),
+    flowerA:!!E.oppFlowerA,flowerB:!!E.oppFlowerB,endPlanA:E.oppEndPlan||'hive',endPlanB:E.oppEndPlan||'hive',flowerTimeA:(+E.flowerTimeA||8)*k,flowerTimeB:(+E.flowerTimeB||8)*k};
+  const oppSim=simulate(SCENARIOS.find(x=>x.id===E.oppStrat)||SCENARIOS[0],OP),opp=E.optOpp?oppSim:null,idle={log:[{t:0,op:'drop',a:'A',n:4,why:'absent'},{t:0,op:'drop',a:'B',n:4,why:'absent'}]},invNm=E.optOpp?undefined:{noOpp:true};
+  const ext=E.optOpp?extFrom(oppSim.log):[{t:0,add:8}];
+  const results=SCENARIOS.map(sc=>simulate(sc,E,ext));
+  const caps={usA:!!E.flowerA,usB:!!E.flowerB,oppA:!!E.oppFlowerA,oppB:!!E.oppFlowerB};
+  const invs=results.map(r=>inventory(r,opp||idle,undefined,caps));
+  results.forEach((r,i)=>{const z=zoneScore(invs[i][invs[i].length-1].st,Math.round(+E.flowerCap||6));r.zone=z.us;r.zoneD=z;r.total+=z.us});
+  const top=Math.max(...results.map(r=>r.total));
+  let c='<thead><tr><th>Strategy</th><th>Tips</th><th>AUTO / TELEOP</th><th>Avg TELEOP gap</th><th>Alternating</th><th>Nobody at HIVE</th><th>Robot wait</th><th>Left in cell</th><th>Points</th><th>Ranking points</th></tr></thead><tbody>';
+  const ranked=[...results.entries()].sort((a,b)=>b[1].total-a[1].total||b[1].tips-a[1].tips||a[0]-b[0]);
+  ranked.forEach(([,r],i)=>{LETTER[r.sc.id]=String.fromCharCode(65+i)});
+  for(const [ri,[,r]] of ranked.entries()){
+    const tt=r.hive.tips.filter(t=>!t.auto).map(t=>t.t);const gap=tt.length>1?(tt[tt.length-1]-tt[0])/(tt.length-1):null;
+    c+=`<tr class="${r.total===top?'best':''}"><td><span class="letter">${String.fromCharCode(65+ri)}</span>${r.sc.name}</td><td class="big">${r.tips}</td><td class="num">${r.autoTips} / ${r.tips-r.autoTips}</td><td class="num">${gap?fmt(gap)+' s':'–'}</td><td class="num">${r.cov.pct}%</td><td class="num">${fmt(r.cov.tot.gap)} s</td><td class="num">${fmt(r.wait)} s</td><td class="num">${r.left}</td><td class="big">${r.total}</td><td>${chips(r)}</td></tr>`}
+  $('cmp').innerHTML=c+'</tbody>';
+  ranked.forEach(([oi],i)=>{INV[i]=invs[oi]});
+  $('scenarios').innerHTML=ranked.map(([,r],i)=>`
+    <section class="panel scen" aria-labelledby="sh${i}">
+      <div class="scen-head"><div><div class="eyebrow">Strategy ${String.fromCharCode(65+i)}</div><h3 id="sh${i}">${r.sc.name}</h3><p class="desc">${r.sc.desc} Effective threshold ${fmt(r.th,3)} lb.</p></div>
+        <div class="kpis"><div class="kpi"><b>${r.total}</b><span>Points</span></div><div class="kpi"><b>${r.tips}</b><span>Tips</span></div><div class="kpi"><b>${r.hivePts}</b><span>HIVE pts</span></div><div class="kpi"><b>${r.park}</b><span>Parking pts</span></div><div class="kpi"><b>${r.zone||0}</b><span>FLOWER + GARDEN pts</span></div><div class="kpi"><b>${r.cov.pct}%</b><span>Alternating</span></div><div class="kpi"><b>${fmt(r.wait)}</b><span>Wait (s)</span></div></div></div>
+      <div class="scroll chart" data-i="${i}">${gantt(r,i,opp)}<div class="tip" hidden></div></div>
+      <details><summary>Tip log</summary><div class="scroll"><table class="log"><thead><tr><th>Tip</th><th>Cell that tips</th><th>Launched by</th><th>Starts (s)</th><th>Balls</th><th>Weight (lb)</th><th>Swing (s)</th><th>Period</th></tr></thead><tbody>
+        ${r.hive.tips.map(t=>`<tr><td>${t.n}</td><td>Hive ${t.cellNo}</td><td>Robot ${t.by}</td><td>${fmt(t.t)}</td><td>${t.nP} P + ${t.nN} N</td><td>${fmt(t.W,3)}</td><td>${fmt(t.swing,2)}</td><td>${t.auto?'AUTO':'TELEOP'}</td></tr>`).join('')||'<tr><td colspan="8">No tips</td></tr>'}
+      </tbody></table></div><p class="hint" style="margin-top:8px">${r.left} ball${r.left===1?'':'s'} (${fmt(r.leftW,3)} lb) left in the upward cell at the buzzer: ${r.left*2} points. Balls still in robots at the end: A ${r.R[0].left}, B ${r.R[1].left}. Missed launches: A ${r.R[0].misses}, B ${r.R[1].misses}. Early returns: A ${r.R[0].earlyN}, B ${r.R[1].earlyN}. Balls not found while collecting: A ${r.R[0].short}, B ${r.R[1].short}.</p></details>
+      <details><summary>Ball count log (${INV[i].length} events)</summary><p class="hint" style="margin:8px 0 6px">${opp?'Every change in where the 40 POLLEN and 16 NECTAR are, for both alliances. P·N = POLLEN · NECTAR. Opponent rows are shaded.':'Every change in where your balls are. The opponent is hidden, so their robots are treated as idle. P·N = POLLEN · NECTAR.'}${!opp?'':INV[i][INV[i].length-1].st.short?` The shared POLLEN supply ran ${INV[i][INV[i].length-1].st.short} short; the simulation let robots collect anyway.`:''}</p>${invTable(INV[i],invNm)}</details>
+    </section>`).join('');
+  document.querySelectorAll('#scenarios .chart').forEach(ch=>bindChart(ch,INV[+ch.dataset.i],invNm,ranked[+ch.dataset.i][1].hive.tips,ranked[+ch.dataset.i][1].R));
+  if(!$('tab-an').hidden)renderAnalysis();
+}
+window.addEventListener('scroll',()=>document.querySelectorAll('.tip').forEach(t=>t.hidden=true),{passive:true});
+(function(){const d=$('optDlg');
+  $('prefSource').onchange=()=>{P.prefSource=$('prefSource').value;run()};
+  $('optBtn').onclick=()=>{applyOptions();if(d.showModal)d.showModal();else d.setAttribute('open','')};
+  d.addEventListener('click',e=>{if(e.target===d)d.close?d.close():d.removeAttribute('open')});
+  for(const [id,k] of [['optErrors','optErrors'],['optOpp','optOpp'],['optSimple','optSimple'],['optAutoNectar','optAutoNectar'],['optOppFlowers','optOppFlowers']])$(id).onchange=()=>{P[k]=$(id).checked;run()};
+})();
+/* ---------- match analysis ---------- */
+const AN_KEY='hiveAnalysis';
+const ROBOTS=[['us','A'],['us','B'],['opp','A'],['opp','B']];
+const SIDE_NAME={us:'Your alliance',opp:'Opponent'};
+const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
+function teams(){if(!AN.teams)AN.teams={color:'red',usA:'',usB:'',oppA:'',oppB:''};return AN.teams}
+function sideColor(s){const c=teams().color==='blue'?'blue':'red';return s==='us'?c:(c==='red'?'blue':'red')}
+function sideName(s){return cap(sideColor(s))+' alliance'+(s==='us'?' (yours)':'')}
+function robotName(s,r){return (teams()[s+r]||'').trim()||`${cap(sideColor(s))} Robot ${r}`}
+function robotFull(s,r){const t=(teams()[s+r]||'').trim();return t?`${t} (${cap(sideColor(s))} ${r})`:`${cap(sideColor(s))} Robot ${r}`}
+function chip(s){return `<span class="achip ${sideColor(s)}" aria-hidden="true"></span>`}
+function names(){return{us:cap(sideColor('us')),opp:cap(sideColor('opp')),usA:robotName('us','A'),usB:robotName('us','B'),oppA:robotName('opp','A'),oppB:robotName('opp','B')}}
+const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ACT_RANK={collect:0,ready:1,launch:2,fput:2,gput:2,tip:3};
+function defaultFlags(){const f={};for(const [s,r] of ROBOTS)f[s+r]={leave:true,apark:false,park:true,pre:true};return f}
+function exampleAN(){
+  const Pe={...structuredClone(DEFAULTS),missA:10,missB:10,failCA:10,failCB:10,early:'off'};
+  const k=1.15,Po={...Pe,launchA:Pe.launchA*k,launchB:Pe.launchB*k,collectA:Pe.collectA.map(x=>x*k),collectB:Pe.collectB.map(x=>x*k),missA:15,missB:15};
+  const ev=[],r1=x=>Math.round(x*10)/10;
+  for(const [side,res] of [['us',simulate(SCENARIOS[0],Pe)],['opp',simulate(SCENARIOS[2],Po)]]){
+    for(const r of res.R)for(const g of r.segs){
+      if(g.k==='drive')ev.push({t:r1(g.e),side,robot:r.id,act:'ready',p:0,n:0});
+      else if(g.k==='collect'){ev.push({t:r1(g.s),side,robot:r.id,act:'collect'});ev.push({t:r1(g.e),side,robot:r.id,act:'ready',p:g.comp.filter(b=>b==='P').length,n:g.comp.filter(b=>b==='N').length})}
+      else if(g.k==='launch'||g.k==='miss')ev.push({t:r1(g.e),side,robot:r.id,act:'launch',ball:g.ball,count:1,missed:g.k==='miss'?1:0});
+    }
+    for(const t of res.hive.tips)ev.push({t:r1(t.t),side,robot:'',act:'tip'});
+  }
+  ev.forEach((e,i)=>e.id=i+1);
+  return{events:ev,flags:defaultFlags(),offset:0,example:true,teams:{color:'red',usA:'',usB:'',oppA:'',oppB:''}};
+}
+function loadAN(){try{const s=JSON.parse(localStorage.getItem(AN_KEY)||'null');if(s&&Array.isArray(s.events)){s.flags={...defaultFlags(),...(s.flags||{})};return s}}catch(e){}return exampleAN()}
+function saveAN(){try{localStorage.setItem(AN_KEY,JSON.stringify(AN))}catch(e){}}
+let AN=loadAN();
+const median=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+const sortEv=(a,b)=>a.t-b.t||ACT_RANK[a.act]-ACT_RANK[b.act]||(a.robot||'').localeCompare(b.robot||'');
+
+function analyzeSide(side,events,flags,P){
+  const th=P.threshold,w=b=>b==='N'?P.wN:P.wP,log=[],warn=[],tips=[];
+  let cell=['N','N','N'],swingEnd=0,up=1,staged=5,noTipMax=0,lastLauncher='',g427=false;
+  const cellW=()=>cell.reduce((a,b)=>a+w(b),0);
+  const sub=(a,b)=>b-a-Math.max(0,Math.min(b,T_TELE)-Math.max(a,T_AUTO));
+  const who=cap(sideColor(side));
+  const R=['A','B'].map((id,i)=>{const f=flags[side+id]||{};
+    const r={id,i,segs:[],held:{P:f.pre===false?0:4,N:0},anchor:null,lastT:0,cs:null,round:0,rounds:[],launches:0,misses:0,lt:[],wait:0,leave:f.leave!==false,park:f.park!==false,apark:f.apark===true,driveT:null};
+    if(f.pre===false)log.push({t:0,op:'drop',a:id,n:4,why:'nopre'});return r});
+  const evs=events.filter(e=>e.side===side).sort(sortEv);
+  evs.forEach((e,ix)=>{
+    if(!g427&&e.t>=G427){g427=true;if(staged>0){log.push({t:G427,op:'release',k:staged,g427:true});staged=0}}
+    const r=R.find(x=>x.id===e.robot),lab=r?`${fmt(e.t)} s · ${esc(robotFull(side,r.id))}`:'';
+    if(e.act==='collect'){if(!r)return;if(r.cs!==null)warn.push(`${lab} leaves to collect again with no return logged since ${fmt(r.cs)} s.`);r.cs=e.t;r.anchor=null;r.lastT=e.t}
+    else if(e.act==='ready'){if(!r)return;const cs0=r.cs,p=+e.p||0,n=+e.n||0,comp=[...Array(n).fill('N'),...Array(p).fill('P')];
+      if(r.cs!==null){r.round++;r.segs.push({k:'collect',s:r.cs,e:e.t,split:r.cs<T_AUTO&&e.t>T_AUTO,round:r.round,comp,lost:0});r.rounds.push({dur:sub(r.cs,e.t),found:comp.length});r.cs=null}
+      else{r.segs.push({k:'drive',s:r.lastT,e:e.t});if(r.driveT===null&&e.t<T_AUTO&&!r.rounds.length)r.driveT=e.t}
+      if(comp.length)log.push({t:e.t,s:cs0!==null?cs0:e.t,op:'collect',a:r.id,comp});
+      r.held.P+=p;r.held.N+=n;if(r.held.P+r.held.N>4)warn.push(`${lab} is recorded holding ${r.held.P+r.held.N} balls; the limit is 4.`);
+      r.anchor=e.t;r.lastT=e.t}
+    else if(e.act==='launch'){if(!r)return;const k=Math.max(1,+e.count||1),m=Math.min(+e.missed||0,k),b=e.ball==='N'?'N':'P';
+      let start=r.anchor;
+      if(start!==null&&swingEnd>start&&swingEnd<e.t){r.segs.push({k:'wait',s:start,e:swingEnd});r.wait+=sub(start,swingEnd);start=swingEnd}
+      if(start!==null)r.lt.push(sub(start,e.t));
+      const s0=start!==null?start:Math.max(r.lastT,e.t-1);
+      if(r.held[b]<k)warn.push(`${lab} launches ${k} ${b==='N'?'NECTAR':'POLLEN'} but was only recorded holding ${r.held[b]}.`);
+      r.held[b]=Math.max(0,r.held[b]-k);
+      for(let q=0;q<k;q++){if(q<m){r.segs.push({k:'miss',s:s0,e:e.t,ball:b});log.push({t:e.t,op:'miss',a:r.id,ball:b})}
+        else{r.segs.push({k:'launch',s:s0,e:e.t,ball:b});log.push({t:e.t,op:'launch',a:r.id,ball:b});cell.push(b)}}
+      r.launches+=k;r.misses+=m;r.anchor=e.t;r.lastT=e.t;lastLauncher=r.id;
+      const nx=evs[ix+1];if(!(nx&&nx.act==='tip'&&Math.abs(nx.t-e.t)<0.25))noTipMax=Math.max(noTipMax,cellW())}
+    else if(e.act==='fput'||e.act==='gput'){if(!r)return;const k=Math.max(1,+e.count||1),b=e.ball==='N'?'N':'P',fl=e.flower||'own0',gs=e.garden||'own';
+      if(r.held[b]<k)warn.push(`${lab} places ${k} ${b==='N'?'NECTAR':'POLLEN'} but was only recorded holding ${r.held[b]}.`);
+      if(e.act==='fput'&&b==='N'&&e.t<G427)warn.push(`${lab} places NECTAR in a FLOWER before the last 60 s (G410 only allows this with 60 s or less left).`);
+      r.held[b]=Math.max(0,r.held[b]-k);const s0=r.anchor!==null?r.anchor:Math.max(r.lastT,e.t-1);
+      for(let q=0;q<k;q++){if(e.act==='fput'){log.push({t:e.t,op:'fput',a:r.id,fside:fl.slice(0,3)==='own'?'own':'opp',idx:+fl.slice(3)||0,ball:b});r.segs.push({k:'launch',s:s0,e:e.t,ball:b,place:(fl.startsWith('own')?'':'other alliance\'s ')+'FLOWER '+((+fl.slice(3)||0)+1)})}
+        else{log.push({t:e.t,op:'gput',a:r.id,gside:gs,ball:b});r.segs.push({k:'launch',s:s0,e:e.t,ball:b,place:gs==='own'?'GARDEN':'other alliance\'s GARDEN'})}}
+      r.anchor=e.t;r.lastT=e.t}
+    else if(e.act==='tip'){const W=cellW(),nN=cell.filter(x=>x==='N').length,sw=swingTime(Math.max(W,th),P.model);
+      if(W<th-0.0005)warn.push(`${fmt(e.t)} s · ${who} HIVE tipped with ${fmt(W,3)} lb logged in the cell, below the ${fmt(th,3)} lb threshold. A launch may be missing from the log, or the threshold may be lower on this field.`);
+      tips.push({n:tips.length+1,t:e.t,W,balls:cell.length,nN,nP:cell.length-nN,swing:sw,end:e.t+sw,by:lastLauncher||'?',auto:e.t+sw<=T_TELE,cellNo:up});up=3-up;
+      log.push({t:e.t+sw,op:'dump',n:tips.length,P:cell.length-nN,N:nN});if(staged>0){staged--;log.push({t:e.t+sw,op:'release',k:1})}
+      cell=[];swingEnd=e.t+sw}
+  });
+  if(!g427&&staged>0)log.push({t:G427,op:'release',k:staged,g427:true});
+  const left=cell.length,leftW=cellW();
+  if(leftW>=th-0.0005)warn.push(`${who} HIVE ends with ${fmt(leftW,3)} lb logged in the cell, at or above the threshold, but no tip is logged after the last launch.`);
+  for(const r of R){if(r.cs!==null)warn.push(`${esc(robotFull(side,r.id))} leaves to collect at ${fmt(r.cs)} s with no return logged.`);
+    r.ltMed=median(r.lt);r.collectAvg=r.rounds.length?r.rounds.reduce((a,b)=>a+b.dur,0)/r.rounds.length:null;
+    r.shortPct=r.rounds.length?Math.max(0,Math.round(100*(1-r.rounds.reduce((a,b)=>a+b.found,0)/(4*r.rounds.length)))):null;
+    r.missPct=r.launches?Math.round(100*r.misses/r.launches):null;r.trig=tips.filter(t=>t.by===r.id).length}
+  const n=tips.length,leave=R.filter(r=>r.leave).length*3,park=R.filter(r=>r.park).length*5+R.filter(r=>r.apark).length*5,tipW=tips.map(t=>t.W);
+  return{sc:{name:sideName(side)},side,R,hive:{tips},log,tips:n,autoTips:tips.filter(t=>t.auto).length,left,leftW,hivePts:n*20+left*2,leave,park,total:n*20+left*2+leave+park,
+    cov:coverage(R),p1:n>=4,p2:n>=7,swarm:leave+park>=16,wait:R[0].wait+R[1].wait,warn,noTipMax,tipMin:tipW.length?Math.min(...tipW):null,tipMax:tipW.length?Math.max(...tipW):null};
+}
+
+function evDetail(e){
+  if(e.act==='collect')return'Leaves to collect';
+  if(e.act==='ready'){const c=[...Array(+e.n||0).fill('N'),...Array(+e.p||0).fill('P')];return`At launch spot · ${c.length?'picked up '+ballTxt(c):'no new balls'}`}
+  if(e.act==='fput'||e.act==='gput'){const k=+e.count||1,f=e.flower||'own0';return`${e.act==='fput'?'Places':'Drops'} ${k} ${e.ball==='N'?'NECTAR':'POLLEN'} in ${e.act==='fput'?`${f.startsWith('own')?'its own':'the other alliance\'s'} FLOWER ${(+f.slice(3)||0)+1}`:`${e.garden==='opp'?'the other alliance\'s':'its own'} GARDEN`}`}
+  if(e.act==='launch'){const k=+e.count||1,m=+e.missed||0;return`Launches ${k} ${e.ball==='N'?'NECTAR':'POLLEN'}${k>1?' (volley)':''} · ${m?(m===k?'missed':`${m} missed, ${k-m} scored`):'scored'}`}
+  return'HIVE tips';
+}
+function renderEvents(){
+  const ev=[...AN.events].sort(sortEv);
+  $('evCountLbl').textContent=`(${ev.length})`;$('exBanner').hidden=!AN.example;
+  $('evTable').innerHTML=`<thead><tr><th>Time (s)</th><th>Alliance</th><th>Robot</th><th>Event</th><th><span class="sr-only">Edit or delete</span></th></tr></thead><tbody>${
+    ev.map(e=>`<tr class="${e.side}${e.id===editId?' editing':''}"><td>${fmt(e.t)}</td><td class="ev">${chip(e.side)}${sideName(e.side)}</td><td class="ev">${e.robot?esc(robotFull(e.side,e.robot)):'–'}</td><td class="ev">${evDetail(e)}</td><td class="acts"><button type="button" class="rowbtn" data-edit="${e.id}" aria-label="Edit event at ${fmt(e.t)} s">Edit</button><button type="button" class="rowbtn del" data-del="${e.id}" aria-label="Delete event at ${fmt(e.t)} s">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="ev">No events yet. Use the form above to log the first one.</td></tr>'}</tbody>`;
+}
+function renderFlags(){
+  const cols=[['leave','LEAVE in AUTO'],['apark','PARK after AUTO'],['park','PARK at the end'],['pre','Preloaded 4 POLLEN']];
+  $('flagTable').innerHTML=`<thead><tr><th>Robot</th>${cols.map(c=>`<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${ROBOTS.map(([s,r])=>`<tr><td class="ev">${chip(s)}${esc(robotFull(s,r))}</td>${cols.map(([k])=>`<td><input type="checkbox" id="fl-${s}${r}-${k}" data-fl="${s}${r}" data-k="${k}" ${(k==='apark'?AN.flags[s+r][k]===true:AN.flags[s+r][k]!==false)?'checked':''} aria-label="${esc(robotFull(s,r))}: ${k}"></td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+let anLast=null;
+function renderAnalysis(){
+  setSW(P);
+  refreshNames();renderEvents();renderFlags();
+  const us=analyzeSide('us',AN.events,AN.flags,P),opp=analyzeSide('opp',AN.events,AN.flags,P);anLast=us;
+  const nm=names(),snaps=inventory(us,opp,nm),z=zoneScore(snaps[snaps.length-1].st,Math.round(+P.flowerCap||6));us.zone=z.us;opp.zone=z.opp;us.total+=z.us;opp.total+=z.opp;
+  $('anSummary').innerHTML=`<thead><tr><th>Alliance</th><th>Tips</th><th>AUTO / TELEOP</th><th>Left in cell</th><th>LEAVE + PARK</th><th>FLOWER + GARDEN</th><th>Points</th><th>Ranking points</th></tr></thead><tbody>${
+    [us,opp].map(r=>`<tr><td>${chip(r.side)}${r.sc.name}</td><td class="big">${r.tips}</td><td class="num">${r.autoTips} / ${r.tips-r.autoTips}</td><td class="num">${r.left}</td><td class="num">${r.leave+r.park}</td><td class="num">${r.zone}</td><td class="big">${r.total}</td><td>${chips(r)}</td></tr>`).join('')}</tbody>`;
+  const cell=v=>v===null?'–':v;
+  $('anRobots').innerHTML=`<thead><tr><th>Robot</th><th>Collect trips</th><th>Avg collect (s)</th><th>Collect shortfall</th><th>Balls launched</th><th>Launch miss rate</th><th>Launch time (s)</th><th>Waiting for HIVE (s)</th><th>Tips triggered</th></tr></thead><tbody>${
+    [us,opp].flatMap(s=>s.R.map(r=>`<tr class="${s.side}"><td>${chip(s.side)}${esc(robotFull(s.side,r.id))}</td><td class="num">${r.rounds.length}</td><td class="num">${r.collectAvg===null?'–':fmt(r.collectAvg)}</td><td class="num">${r.shortPct===null?'–':r.shortPct+'%'}</td><td class="num">${r.launches}</td><td class="num">${r.missPct===null?'–':r.missPct+'%'}</td><td class="num">${r.ltMed===null?'–':fmt(r.ltMed)}</td><td class="num">${fmt(r.wait)}</td><td class="num">${r.trig}</td></tr>`)).join('')}</tbody>`;
+  const tw=[us,opp].filter(r=>r.tipMin!==null).map(r=>`${r.sc.name}: tipped at ${fmt(r.tipMin,3)}${r.tipMax!==r.tipMin?`–${fmt(r.tipMax,3)}`:''} lb${r.noTipMax?`, held ${fmt(r.noTipMax,3)} lb without tipping`:''}`);
+  $('anTip').textContent=tw.length?`Tip weights from the log: ${tw.join('. ')}. Your threshold setting is ${fmt(P.threshold,3)} lb.`:'';
+  const warns=[...us.warn,...opp.warn];
+  $('anWarn').innerHTML=warns.map(w=>`<li>${w}</li>`).join('');
+  const strat=us.hive.tips.map(matchStrategy);
+  $('anChart').innerHTML=gantt(us,'an',opp,strat,{A:nm.usA,B:nm.usB,hive:nm.us+' HIVE',opp:nm.opp+' HIVE'})+'<div class="tip" hidden></div>';
+  $('anRounds').innerHTML=strat.length?`<thead><tr><th>Tip</th><th>Time (s)</th><th>Cell</th><th>Load that tipped it</th><th>Weight (lb)</th><th>Closest strategy</th></tr></thead><tbody>${strat.map((m,i)=>{const t=us.hive.tips[i];return `<tr><td>${t.n}</td><td>${fmt(t.t)}</td><td>Hive ${t.cellNo}</td><td class="ev">${m.load}${m.note?` <span class="hint">(${m.note.toLowerCase()})</span>`:''}</td><td>${fmt(t.W,3)}</td><td class="ev"><span class="letter">${m.letter}</span>${m.name}</td></tr>`}).join('')}</tbody>`:'<tbody><tr><td class="ev">No tips logged for your alliance yet.</td></tr></tbody>';
+  const cnt={};strat.forEach(m=>cnt[m.id]=(cnt[m.id]||0)+1);const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+  $('anRoundsSum').textContent=top?`Most tips matched Strategy ${LETTER[top[0]]} · ${SCENARIOS.find(x=>x.id===top[0]).name} (${top[1]} of ${strat.length}). Letters follow the current ranking on the Planning tab.`:'';
+  $('anInvSum').textContent=`Ball count log (${snaps.length} events)`;
+  $('anInv').innerHTML=`<p class="hint" style="margin:8px 0 6px">Every change in where the 40 POLLEN and 16 NECTAR are, for both alliances, rebuilt from your event log. P·N = POLLEN · NECTAR. ${nm.opp} alliance rows are shaded.</p>`+invTable(snaps,nm);
+  bindChart($('anChart'),snaps,nm,us.hive.tips,us.R);
+  {const nmO={...nm,us:nm.opp,opp:nm.us,usA:nm.oppA,usB:nm.oppB,oppA:nm.usA,oppB:nm.usB},stO=opp.hive.tips.map(matchStrategy);
+    $('anChartUsH').innerHTML=chip('us')+esc(sideName('us'));$('anChartOppH').innerHTML=chip('opp')+esc(sideName('opp'));
+    $('anChartOpp').innerHTML=gantt(opp,'ano',us,stO,{A:nm.oppA,B:nm.oppB,hive:nm.opp+' HIVE',opp:nm.us+' HIVE'})+'<div class="tip" hidden></div>';
+    bindChart($('anChartOpp'),inventory(opp,us,nmO),nmO,opp.hive.tips,opp.R)}
+}
+function anChanged(){saveAN();renderAnalysis()}
+function syncEvForm(){
+  const a=$('evAct').value;
+  document.querySelectorAll('#evForm [data-for]').forEach(el=>el.hidden=!el.dataset.for.split(' ').includes(a));
+  $('evRobot').disabled=a==='tip';
+}
+$('evAct').onchange=syncEvForm;
+function refreshNames(){
+  const so=$('evSide').options;so[0].textContent=sideName('us');so[1].textContent=sideName('opp');
+  const side=$('evSide').value,ro=$('evRobot').options;ro[0].textContent=robotFull(side,'A');ro[1].textContent=robotFull(side,'B');
+  $('tmTitleUs').innerHTML=chip('us')+sideName('us');$('tmTitleOpp').innerHTML=chip('opp')+sideName('opp');
+}
+$('evSide').addEventListener('change',refreshNames);
+function syncTeamInputs(){$('tmColor').value=teams().color;for(const k of ['usA','usB','oppA','oppB'])$('tm-'+k).value=teams()[k]||''}
+$('tmColor').onchange=()=>{teams().color=$('tmColor').value;anChanged()};
+for(const k of ['usA','usB','oppA','oppB'])$('tm-'+k).addEventListener('input',()=>{teams()[k]=$('tm-'+k).value.slice(0,40);anChanged()});
+syncTeamInputs();
+$('evForm').addEventListener('submit',e=>{e.preventDefault();const err=$('evErr');err.textContent='';
+  const t=parseFloat($('evTime').value);
+  if(!isFinite(t)||t<0||t>170){err.textContent='Enter a match time between 0 and 170 s.';$('evTime').focus();return}
+  const act=$('evAct').value,ev={id:editId??Math.max(0,...AN.events.map(x=>x.id||0))+1,t:Math.round(t*10)/10,side:$('evSide').value,robot:act==='tip'?'':$('evRobot').value,act};
+  if(act==='ready'){ev.p=+$('evP').value;ev.n=+$('evN').value;if(ev.p+ev.n>4){err.textContent='A robot can pick up at most 4 balls in total.';return}}
+  if(act==='launch'){ev.ball=$('evBall').value;ev.count=+$('evCount').value;ev.missed=+$('evMiss').value;if(ev.missed>ev.count){err.textContent='Missed can\'t be more than the number launched.';return}}
+  if(act==='fput'||act==='gput'){ev.ball=$('evBall').value;ev.count=+$('evCount').value;if(act==='fput')ev.flower=$('evFlower').value;else ev.garden=$('evGarden').value}
+  if(editId!==null){AN.events=AN.events.map(x=>x.id===editId?ev:x);endEdit()}else AN.events.push(ev);
+  anChanged();
+});
+let editId=null;
+function endEdit(){editId=null;$('evSubmit').textContent='Add event';$('evCancel').hidden=true}
+function startEdit(id){const e=AN.events.find(x=>x.id===id);if(!e)return;editId=id;
+  $('evTime').value=e.t;$('evSide').value=e.side;$('evAct').value=e.act;refreshNames();if(e.robot)$('evRobot').value=e.robot;
+  if(e.act==='ready'){$('evP').value=String(+e.p||0);$('evN').value=String(+e.n||0)}
+  if(e.act==='launch'){$('evBall').value=e.ball==='N'?'N':'P';$('evCount').value=String(+e.count||1);$('evMiss').value=String(+e.missed||0)}
+  if(e.act==='fput'||e.act==='gput'){$('evBall').value=e.ball==='N'?'N':'P';$('evCount').value=String(+e.count||1);if(e.flower)$('evFlower').value=e.flower;if(e.garden)$('evGarden').value=e.garden}
+  syncEvForm();$('evSubmit').textContent='Save changes';$('evCancel').hidden=false;$('evErr').textContent='';renderEvents();
+  $('evForm').scrollIntoView({behavior:'smooth',block:'center'});$('evTime').focus({preventScroll:true})}
+$('evCancel').onclick=()=>{endEdit();renderEvents()};
+['evTime','evP','evN','evCount','evMiss'].forEach(id=>$(id).addEventListener('input',()=>$('evErr').textContent=''));
+$('evTable').addEventListener('click',e=>{const ed=e.target.closest('[data-edit]');if(ed){startEdit(+ed.dataset.edit);return}
+  const b=e.target.closest('[data-del]');if(!b)return;if(String(editId)===b.dataset.del)endEdit();AN.events=AN.events.filter(x=>String(x.id)!==b.dataset.del);anChanged()});
+$('flagTable').addEventListener('change',e=>{const c=e.target.closest('[data-fl]');if(!c)return;AN.flags[c.dataset.fl][c.dataset.k]=c.checked;anChanged()});
+$('evExample').onclick=()=>{const o=AN.offset,tm=teams();AN=exampleAN();AN.offset=o;AN.teams=tm;endEdit();renderFlags();anChanged()};
+$('evClear').onclick=()=>{AN.events=[];AN.example=false;endEdit();anChanged()};
+$('evCopy').onclick=()=>{const txt=JSON.stringify(matchData());$('evJson').value=txt;
+  const ok=()=>{$('evJsonMsg').textContent='Copied.'};const fb=()=>{$('evJson').select();$('evJsonMsg').textContent='Press Ctrl+C or Cmd+C to copy the selected text.'};
+  try{navigator.clipboard.writeText(txt).then(ok,fb)}catch(e){fb()}};
+function applyMatchData(d){const ev=Array.isArray(d)?d:d&&d.events;
+  if(!Array.isArray(ev)||ev.some(x=>!x||typeof x.t!=='number'||!ACT_RANK.hasOwnProperty(x.act)||!['us','opp'].includes(x.side)))throw new Error('bad');
+  AN.events=ev.map((x,i)=>({...x,id:i+1}));if(d.flags)AN.flags={...defaultFlags(),...d.flags};if(d.teams)AN.teams={...teams(),...d.teams};
+  if(d.video){if(typeof d.video.offset==='number')AN.offset=d.video.offset;if(typeof d.video.path==='string')AN.videoPath=d.video.path}
+  $('vidOffset').value=AN.offset||0;$('vidPath').value=AN.videoPath||'';syncTeamInputs();endEdit();AN.example=false;renderFlags();anChanged();return ev.length}
+$('evPaste').onclick=()=>{try{const n=applyMatchData(JSON.parse($('evJson').value));$('evJsonMsg').textContent=`Loaded ${n} events.`}
+  catch(e){$('evJsonMsg').textContent='That text isn\'t a copied event log. Copy it again with "Copy events" and paste the whole thing.'}};
+function matchData(){return{format:'biobuzz-match',version:1,exported:new Date().toISOString(),video:{path:AN.videoPath||'',offset:AN.offset||0},teams:teams(),flags:AN.flags,events:[...AN.events].sort(sortEv).map(({id,...e})=>e)}}
+$('mfLoad').onchange=async()=>{const f=$('mfLoad').files[0];if(!f)return;const m=$('mfMsg');
+  try{const n=applyMatchData(JSON.parse(await f.text()));
+    m.textContent=`Loaded ${n} events from ${f.name}.`+(AN.videoPath?` Now choose the video "${AN.videoPath}" under Match video; browsers can't open a file from a saved path on their own.`:'')}
+  catch(e){m.textContent=`${f.name} isn't a match file exported from this page. Choose a .json file made with "Export match file".`}
+  $('mfLoad').value=''};
+$('mfExport').onclick=async()=>{const m=$('mfMsg'),txt=JSON.stringify(matchData(),null,2);
+  const slug=x=>String(x).trim().replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,30);
+  const nm=names(),fn=`biobuzz-match-${slug(nm.usA)}-${slug(nm.usB)}-vs-${slug(nm.oppA)}-${slug(nm.oppB)}.json`;
+  saveJsonFile(fn,txt,m,'If your browser didn\'t save it, use "Copy events" in the event log.')};
+async function saveJsonFile(fn,txt,m,fallback){
+  let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){}
+  if(dl){try{await dl.save({filename:fn,data:txt});m.textContent=`Saved ${fn}.`}catch(e){m.textContent=e&&e.code==='declined'?'Save cancelled.':'This view can\'t save files.'}return}
+  try{const u=URL.createObjectURL(new Blob([txt],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);
+    m.textContent=`Saved ${fn}. ${fallback}`}catch(e){m.textContent='This view can\'t save files.'}
+}
+$('pfSave').onclick=()=>{const d=new Date(),stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  saveJsonFile(`biobuzz-plan-${stamp}.json`,JSON.stringify({format:'biobuzz-plan',version:1,saved:d.toISOString(),settings:P},null,2),$('pfMsg'),'Check your downloads folder.')};
+$('pfLoad').onchange=async()=>{const f=$('pfLoad').files[0];if(!f)return;const m=$('pfMsg');
+  try{const d=JSON.parse(await f.text()),st=d&&(d.settings||d);
+    if(!st||typeof st!=='object'||!Array.isArray(st.collectA)||!Array.isArray(st.collectB))throw new Error('bad');
+    const nP={...structuredClone(DEFAULTS)};
+    for(const k of Object.keys(DEFAULTS)){if(!(k in st))continue;const dv=DEFAULTS[k],v=st[k];
+      if(Array.isArray(dv)){if(Array.isArray(v))nP[k]=Array.from({length:nP.rounds},(_,i)=>{const x=+v[Math.min(i,v.length-1)];return isFinite(x)&&x>0?x:dv[i]})}
+      else if(typeof dv==='number'){const x=+v;if(isFinite(x))nP[k]=x}
+      else if(typeof dv==='boolean')nP[k]=!!v;
+      else if(typeof v==='string')nP[k]=v}
+    P=nP;bindInputs();run();m.textContent=`Loaded ${f.name}.`}
+  catch(e){m.textContent=`${f.name} isn't a planning file saved from this page. Choose a .json file made with "Save planning file".`}
+  $('pfLoad').value=''};
+$('vidPath').value=AN.videoPath||'';
+$('vidPath').addEventListener('input',()=>{AN.videoPath=$('vidPath').value;saveAN()});
+$('applyPlan').onclick=()=>{const res=anLast;if(!res)return;
+  for(const r of res.R){const id=r.id;
+    if(r.ltMed!==null)P['launch'+id]=Math.max(0.1,Math.round(r.ltMed*10)/10);
+    if(r.rounds.length){const d=r.rounds.map(x=>Math.max(1,Math.round(x.dur*2)/2));P['collect'+id]=Array.from({length:P.rounds},(_,i)=>d[Math.min(i,d.length-1)])}
+    if(r.shortPct!==null)P['failC'+id]=Math.min(75,r.shortPct);
+    if(r.missPct!==null)P['miss'+id]=Math.min(90,r.missPct);
+    if(r.driveT!==null)P['drive'+id]=Math.round(r.driveT*2)/2;}
+  bindInputs();run();showTab('plan');window.scrollTo(0,0)};
+/* video */
+const vid=$('vid');
+$('vidFile').onchange=()=>{const f=$('vidFile').files[0];if(!f)return;try{if(vid.dataset.url)URL.revokeObjectURL(vid.dataset.url)}catch(e){}
+  const u=URL.createObjectURL(f);vid.dataset.url=u;vid.src=u;vid.hidden=false;$('vidEmpty').hidden=true;vid.playbackRate=+$('vidRate').value;
+  const base=(AN.videoPath||'').split(/[\\/]/).pop();
+  if(!AN.videoPath){AN.videoPath=f.name;$('vidPath').value=f.name;saveAN()}
+  else if(base!==f.name)$('mfMsg').textContent=`Heads up: this video is "${f.name}", but the match file names "${base}".`};
+$('vidRate').onchange=()=>{vid.playbackRate=+$('vidRate').value};
+$('vidOffset').value=AN.offset||0;
+$('vidOffset').oninput=()=>{const v=parseFloat($('vidOffset').value);if(isFinite(v)){AN.offset=v;saveAN();vidTick()}};
+$('setOffset').onclick=()=>{if(vid.hidden)return;AN.offset=Math.round(vid.currentTime*10)/10;$('vidOffset').value=AN.offset;saveAN();vidTick()};
+function matchNow(){return Math.round((vid.currentTime-(AN.offset||0))*10)/10}
+function vidTick(){if(vid.hidden)return;const t=matchNow();$('vidClock').textContent=`${fmt(t)} s`;
+  $('vidPeriod').textContent=t<0?'Before AUTO':t<T_AUTO?'AUTO':t<T_TELE?'Transition':t<=T_END?'TELEOP':'After the buzzer'}
+vid.addEventListener('timeupdate',vidTick);vid.addEventListener('seeked',vidTick);
+$('evNow').onclick=()=>{if(vid.hidden){$('evErr').textContent='Load a video first, or type the match time.';return}$('evTime').value=Math.max(0,matchNow());$('evErr').textContent=''};
+/* tabs */
+function showTab(t){const an=t==='an';$('tab-plan').hidden=an;$('tab-an').hidden=!an;$('t-plan').setAttribute('aria-selected',String(!an));$('t-an').setAttribute('aria-selected',String(an));
+  $('t-plan').tabIndex=an?-1:0;$('t-an').tabIndex=an?0:-1;$('reset').hidden=an;try{localStorage.setItem('hiveTab',t)}catch(e){}if(an)renderAnalysis()}
+$('t-plan').onclick=()=>showTab('plan');$('t-an').onclick=()=>showTab('an');
+document.querySelector('.tabs').addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const t=$('t-an').getAttribute('aria-selected')==='true'?'plan':'an';showTab(t);$(t==='an'?'t-an':'t-plan').focus()}});
+renderFlags();syncEvForm();
+bindInputs();run();
+showTab((location.hash==='#analysis'||(()=>{try{return localStorage.getItem('hiveTab')}catch(e){return null}})()==='an')?'an':'plan');
+
+/* ---------- info pop-ups ---------- */
+(function(){
+  const pop=document.createElement('div');pop.className='pop';pop.hidden=true;pop.setAttribute('role','tooltip');document.body.appendChild(pop);
+  let cur=null;
+  const close=()=>{if(cur)cur.setAttribute('aria-expanded','false');cur=null;pop.hidden=true};
+  const open=btn=>{if(cur===btn){close();return}close();cur=btn;btn.setAttribute('aria-expanded','true');
+    const host=btn.closest('dialog')||document.body;if(pop.parentNode!==host)host.appendChild(pop);pop.innerHTML=document.getElementById(btn.getAttribute('aria-controls')).innerHTML;pop.hidden=false;
+    const r=btn.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
+    let x=Math.min(Math.max(12,r.left-12),window.innerWidth-pw-12),y=r.bottom+8;if(y+ph>window.innerHeight-12)y=Math.max(12,r.top-ph-8);
+    pop.style.left=x+'px';pop.style.top=y+'px'};
+  document.addEventListener('click',e=>{const b=e.target.closest('.info');if(b){e.preventDefault();open(b)}else if(!e.target.closest('.pop'))close()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+  window.addEventListener('scroll',close,{passive:true});window.addEventListener('resize',close);
+})();
+</script>
+</body>
+</html>
