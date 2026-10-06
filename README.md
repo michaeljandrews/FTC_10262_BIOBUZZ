@@ -1,5 +1,9 @@
 # FTC BIOBUZZ · HIVE planning and match analysis
 
+![Planner timeline for one strategy, with the hover pop-up open showing the ball count and a side view of the HIVE, FLOWERS, GARDENS and robots at 54 s](planner-screenshot.png)
+
+*A strategy timeline with the hover pop-up open at 54 s: Robot A waits beside the HIVE while Hive 1 tips, and Robot B is out collecting.*
+
 Created by Michael Andrews ([mj@mikeandrews.me](mailto:mj@mikeandrews.me)), FTC Team 10262 and Claude Opus 5.5
 
 A single-page planner for the 2026–27 FTC game **BIOBUZZ**. It does two jobs:
