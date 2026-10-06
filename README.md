@@ -6,6 +6,8 @@
 
 Created by Michael Andrews ([mj@mikeandrews.me](mailto:mj@mikeandrews.me)), FTC Team 10262 and Claude Opus 5.5
 
+**[▶ Open the planner](https://github.com/michaeljandrews/FTC_10262_BIOBUZZ/biobuzz-hive-match-planner.html)**
+
 A single-page planner for the 2026–27 FTC game **BIOBUZZ**. It does two jobs:
 
 - **Planning**: simulates a full match from your robots' times and compares six ways of loading the HIVE, so you can pick the strategy that scores the most.
