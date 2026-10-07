@@ -1,12 +1,12 @@
 # FTC BIOBUZZ · HIVE planning and match analysis
 
+**Lightning Robotics**
+
 ![Planner timeline for one strategy, with the hover pop-up open showing the ball count and a side view of the HIVE, FLOWERS, GARDENS and robots at 54 s](planner-screenshot.png)
 
 *A strategy timeline with the hover pop-up open at 54 s: Robot A waits beside the HIVE while Hive 1 tips, and Robot B is out collecting.*
 
 Created by Michael Andrews ([mj@mikeandrews.me](mailto:mj@mikeandrews.me)), FTC Team 10262 and Claude Opus 5.5
-
-**[▶ Open the planner](https://michaeljandrews.github.io/FTC_10262_BIOBUZZ/biobuzz-hive-match-planner.html)**
 
 A single-page planner for the 2026–27 FTC game **BIOBUZZ**. It does two jobs:
 
@@ -222,11 +222,17 @@ The shaded band from 0–30 s is AUTO; 30–38 s is the transition; 158 s is the
 
 **Every gap is shown as waiting**, and hovering explains the reason: waiting for the HIVE to finish swinging, no balls available to collect, nothing left to collect in AUTO, waiting to park after AUTO, or done for the match because another trip would not finish in time.
 
-### Hover pop-up
+### Details panel and hover pop-up
 
-Hover (or tap) anywhere on a timeline to see:
+Below every timeline is a **details panel**:
 
-- The segment you are over (for example "collect round 3 · Brings back 4 POLLEN")
+- **On a phone or tablet (including iOS Safari):** tap anywhere on the timeline. The panel opens below it, and a dashed line marks the chosen moment. Use the slider or the **−1 s / +1 s** buttons to step through the match, and **×** to close the panel. Swipe sideways on the timeline to scroll it as usual; only a tap picks a time.
+- **With a mouse:** hover for a quick floating pop-up, or click to keep the details in the panel while you scroll.
+- The panel remembers its time while you change settings, so you can watch how a change affects that moment.
+
+The panel and the pop-up show:
+
+- What each robot is doing at that moment (in the pop-up, the segment under the pointer), for example "collect round 3 · Brings back 4 POLLEN"
 - **Ball count at that moment:** your HIVE, the floor, your robots, what the opponent holds, FLOWERS, GARDENS and staged NECTAR
 - **A side-view picture of the field:**
   - The HIVE see-saw with both cells, their contents and weight (a ✓ when at or over the threshold); it swings during a tip
@@ -474,6 +480,7 @@ A purely empirical fit by ordinary least squares: R² ≈ 0.75, about 0.13 s fas
 | "isn't a planning file" when loading | Only files saved with Save planning file can be loaded there; match files go under Match file |
 | Analysis numbers differ from a teammate's | Compare Field Settings: the match file doesn't carry them |
 | A robot waits in AUTO with nothing to do | In AUTO robots can't pick up loose floor balls. Turn on Can collect from FLOWERS or adjust the plan |
+| The hover pop-up is awkward on a phone | Tap the timeline instead and use the details panel below it |
 | Fonts look different offline | The page falls back to system fonts without an internet connection; everything still works |
 
 ---
@@ -493,3 +500,4 @@ A purely empirical fit by ordinary least squares: R² ≈ 0.75, about 0.13 s fas
 - Robots show as paused (grey) during the AUTO-to-TELEOP transition
 - In AUTO, robots collect only from their preloads, own GARDEN and (if allowed) own FLOWERS, never loose balls on the floor
 - Ball count log no longer names a source a ball didn't actually come from
+- Details panel below every timeline: tap (or click) to pick a moment, then step with a slider or ±1 s buttons; works well on iOS Safari and other touch screens
