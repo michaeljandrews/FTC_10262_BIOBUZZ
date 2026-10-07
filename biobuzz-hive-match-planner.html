@@ -154,6 +154,15 @@ table.grid td input.auto-round{border-color:var(--collect)}
 .tip{position:fixed;pointer-events:none;max-height:none;overflow:visible;box-shadow:0 4px 14px rgba(0,0,0,.18);background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.4;padding:8px 10px;border-radius:6px;width:290px;z-index:3;font-variant-numeric:tabular-nums}
 .hivefig{margin-top:8px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);padding-top:6px}.chart .hivefig svg{display:block;width:266px;min-width:0;max-width:100%;height:auto}
 .hleg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;opacity:.85}.hl i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0}.hl i.sq{border-radius:2px;border:2px solid;width:9px;height:9px;background:transparent;vertical-align:-1px}
+.tpanel{margin-top:10px;background:var(--ink);color:var(--bg);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.4;font-variant-numeric:tabular-nums}
+.tpanel .tp-hint{margin:0;font-size:13px;opacity:.85}.tp-h-touch{display:none}@media (hover:none){.tp-h-touch{display:inline}.tp-h-mouse{display:none}}
+.tp-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;font-weight:600}.tp-ctl{display:flex;align-items:center;gap:8px}.tp-ctl input[type=range]{flex:1 1 160px;min-width:120px;accent-color:var(--accent)}
+.tpanel button{background:transparent;color:var(--bg);border:1px solid color-mix(in srgb,var(--bg) 40%,transparent);border-radius:6px;padding:6px 10px;min-height:36px;font:600 13px var(--f-body);text-transform:none;letter-spacing:0;cursor:pointer}
+.tpanel .tp-close{min-width:36px;padding:4px 8px;font-size:18px;line-height:1}
+.tp-t{font:600 15px var(--f-mono);margin-left:4px}
+.tp-body{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:10px;align-items:flex-start}.tp-info{flex:1 1 280px;min-width:0;max-width:560px}.tp-fig{flex:0 1 360px;min-width:0}.tp-seg{margin-bottom:3px}
+.tp-fig .hivefig{margin-top:0;border-top:0;padding-top:0}.tpanel .hivefig svg{display:block;width:360px;max-width:100%;height:auto}
+.tpanel hr{border:0;border-top:1px solid color-mix(in srgb,var(--bg) 30%,transparent);margin:8px 0}
 .tip hr{border:0;border-top:1px solid color-mix(in srgb,var(--bg) 30%,transparent);margin:6px 0}
 .inv{display:grid;grid-template-columns:auto 1fr;gap:1px 10px}.inv b{grid-column:1/-1;margin-bottom:2px}.inv span:nth-child(even){opacity:.75}
 .invwrap{max-height:380px;overflow:auto;border:1px solid var(--rule);border-radius:6px}
@@ -891,18 +900,50 @@ function hiveSVG(sn,t,tips,nm,R){
   const leg=`<span class="hl"><i style="background:${PC}"></i>POLLEN</span><span class="hl"><i style="background:${NC[usC]}"></i>${nm&&nm.us?nm.us:'Your'} NECTAR</span>${nm&&nm.noOpp?'':`<span class="hl"><i style="background:${NC[opC]}"></i>${nm&&nm.opp?nm.opp:'Opp'} NECTAR</span>`}<span class="hl"><i class="sq" style="border-color:var(--collect)"></i>Out collecting</span><span class="hl"><i class="sq" style="border-color:var(--swing)"></i>Launching</span><span class="hl"><i class="sq" style="border-color:#e5484d"></i>Parking</span>`;
   return `<div class="hivefig"><svg viewBox="0 -30 ${W} ${(HH+30).toFixed(0)}" width="${W}" height="${(HH+30).toFixed(0)}" role="img" aria-label="Side view of your HIVE. Hive ${full} holds ${s.cellP.us} POLLEN and ${s.cellN.us} NECTAR. ${robTxt.join('. ')}. ${fl.length} balls on the floor.">${g}</svg><div class="hleg">${leg}<span class="hl">Floor: ${fl.length}</span>${nm&&nm.noOpp?'':`<span class="hl">${nm&&nm.opp?nm.opp:'Opponent'} holds ${s.cellP.opp+s.robP.opp+s.cellN.opp+s.robN.opp} off the floor</span>`}${swingTxt?`<span class="hl"><b>${swingTxt}</b></span>`:''}</div></div>`;
 }
+const PIN={};
 function bindChart(ch,snaps,nm,tips,R){
+    const key=ch.id||('sc'+ch.dataset.i);
     const tip=ch.querySelector('.tip');
     const svg=ch.querySelector('svg'),xh=svg.querySelector('.xhair');
-    ch.addEventListener('pointermove',e=>{const bb=svg.getBoundingClientRect();const vx=(e.clientX-bb.left)/bb.width*1000;const tm=(vx-X0)/(X1-X0)*AXIS_END;
-      if(tm<0||tm>AXIS_END){tip.hidden=true;xh.setAttribute('visibility','hidden');return}
+    const tAt=cx=>{const bb=svg.getBoundingClientRect();return((cx-bb.left)/bb.width*1000-X0)/(X1-X0)*AXIS_END};
+    const vxOf=tm=>X0+tm/AXIS_END*(X1-X0);
+    /* detail panel below the timeline (works with touch) */
+    let pan=ch.nextElementSibling;
+    if(!pan||!pan.classList.contains('tpanel')){pan=document.createElement('div');pan.className='tpanel';
+      pan.innerHTML=`<p class="tp-hint"><span class="tp-h-touch">Tap the timeline to see the ball count and the field at that moment.</span><span class="tp-h-mouse">Hover for a quick look, or click the timeline to keep the details here.</span></p>
+      <div class="tp-main" hidden><div class="tp-top"><span>Match time <output class="tp-t" aria-live="polite"></output></span><button type="button" class="tp-close" aria-label="Close details">×</button></div><div class="tp-ctl"><button type="button" class="tp-step" data-d="-1" aria-label="Back 1 second">−1 s</button><input type="range" min="0" max="${T_END}" step="0.1" aria-label="Match time (s)"><button type="button" class="tp-step" data-d="1" aria-label="Forward 1 second">+1 s</button></div>
+      <div class="tp-body"><div class="tp-info"></div><div class="tp-fig"></div></div></div>`;
+      ch.insertAdjacentElement('afterend',pan);
+      const rng=pan.querySelector('input');
+      rng.addEventListener('input',()=>pan._render&&pan._render(+rng.value));
+      pan.querySelectorAll('.tp-step').forEach(b=>b.addEventListener('click',()=>pan._render&&pan._render(Math.min(T_END,Math.max(0,(pan._t||0)+ +b.dataset.d)))));
+      pan.querySelector('.tp-close').addEventListener('click',()=>{pan._t=null;delete PIN[pan._key];pan.querySelector('.tp-main').hidden=true;pan.querySelector('.tp-hint').hidden=false;pan._hide&&pan._hide()});}
+    const segText=(tm,y)=>{const vx=vxOf(tm);let hit=null;svg.querySelectorAll(`rect[data-tip][y="${y}"]`).forEach(r=>{const x=+r.getAttribute('x'),w=+r.getAttribute('width');if(vx>=x-0.01&&vx<=x+w+0.01)hit=r});return hit?hit.getAttribute('data-tip'):null};
+    pan._key=key;pan._hide=()=>xh.setAttribute('visibility','hidden');
+    pan._render=tm=>{tm=Math.round(Math.min(T_END,Math.max(0,tm))*10)/10;pan._t=tm;PIN[key]=tm;
+      const vx=vxOf(tm);xh.setAttribute('x1',vx);xh.setAttribute('x2',vx);xh.setAttribute('visibility','visible');
+      const trans=tm>=T_AUTO&&tm<T_TELE,lines=(R||[]).map((r,i)=>{const t0=segText(tm,i?70:34);return `<div class="tp-seg">${t0||`Robot ${r.id} · ${trans?'paused for the transition':'idle'}`}</div>`}).join('');
+      const sn=invAt(snaps,tm);
+      pan.querySelector('.tp-info').innerHTML=lines+'<hr>'+invHTML(sn,tm,nm);pan.querySelector('.tp-fig').innerHTML=hiveSVG(sn,tm,tips,nm,R);
+      pan.querySelector('input').value=tm;pan.querySelector('.tp-t').textContent=`${tm.toFixed(1)} s`;
+      pan.querySelector('.tp-main').hidden=false;pan.querySelector('.tp-hint').hidden=true};
+    if(pan._t==null&&PIN[key]!=null)pan._t=PIN[key];if(pan._t!=null)pan._render(pan._t);
+    /* floating tooltip for mouse */
+    ch.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'){tip.hidden=true;return}
+      const tm=tAt(e.clientX);const vx=vxOf(tm);
+      if(tm<0||tm>AXIS_END){tip.hidden=true;if(pan._t==null)xh.setAttribute('visibility','hidden');return}
       xh.setAttribute('x1',vx);xh.setAttribute('x2',vx);xh.setAttribute('visibility','visible');
       const seg=e.target.closest('[data-tip]');
       tip.innerHTML=(seg?`<div>${seg.getAttribute('data-tip')}</div><hr>`:'')+(()=>{const sn=invAt(snaps,tm);return invHTML(sn,tm,nm)+hiveSVG(sn,tm,tips,nm,R)})();tip.hidden=false;
       const tw=tip.offsetWidth,th=tip.offsetHeight,vw=window.innerWidth,vh=window.innerHeight;
       let x=e.clientX+14,y=e.clientY-th/2;if(x+tw>vw-8)x=e.clientX-tw-14;x=Math.max(8,x);y=Math.max(8,Math.min(y,vh-th-8));
       tip.style.left=x+'px';tip.style.top=y+'px'});
-    ch.addEventListener('pointerleave',()=>{tip.hidden=true;xh.setAttribute('visibility','hidden')});
+    ch.addEventListener('pointerleave',()=>{tip.hidden=true;if(pan._t!=null)pan._render(pan._t);else xh.setAttribute('visibility','hidden')});
+    /* tap or click pins the time in the panel */
+    let down=null;
+    ch.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY}});
+    ch.addEventListener('pointerup',e=>{if(!down)return;const moved=Math.hypot(e.clientX-down.x,e.clientY-down.y);down=null;if(moved>8)return;
+      const tm=tAt(e.clientX);if(tm<0||tm>AXIS_END)return;tip.hidden=true;pan._render(Math.min(tm,T_END))});
   }
 function chips(res){return `<div class="chips"><span class="chip ${res.p1?'on':'off'}">Pollinator 1</span><span class="chip ${res.p2?'on':'off'}">Pollinator 2</span><span class="chip ${res.swarm?'on':'off'}">Swarm</span></div>`}
 function run(){
