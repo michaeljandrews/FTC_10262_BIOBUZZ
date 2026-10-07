@@ -15,6 +15,8 @@ A single-page planner for the 2026–27 FTC game **BIOBUZZ**. It does two jobs:
 
 Both tabs use the same game rules, the same Field Settings and the same scoring.
 
+**[▶ Open the planner](https://michaeljandrews.github.io/FTC_10262_BIOBUZZ/biobuzz-hive-match-planner.html)**
+
 ---
 
 ## Contents
