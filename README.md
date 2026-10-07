@@ -40,7 +40,7 @@ Both tabs use the same game rules, the same Field Settings and the same scoring.
 
 ### Opening the planner
 
-- **Shared link:** open the link in any modern browser (Chrome, Edge, Safari or Firefox) on a laptop, tablet or phone.
+- **Shared link:** open the link in any modern browser (Chrome, Edge, Safari or Firefox) on a laptop, tablet or phone. Javascript is required.
 - **HTML file:** double-click `biobuzz-hive-match-planner.html`. It runs entirely in your browser with no install and no server. An internet connection is only used to load the fonts; without one the page still works with your system fonts.
 
 ### Your settings are remembered
